@@ -30,7 +30,7 @@ class Policy(object):
         raise TypeError("Subclass me!")
 
     def new_access_token(self, client, scope):
-        token_type = self.client.token_type(scope)
+        token_type = client.token_type(scope)
         expiry_time = self.expiry_time(client, scope)
         if self.refresh_token(client, scope):
             refresh_token = RefreshToken(self, scope)

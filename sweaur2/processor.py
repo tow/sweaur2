@@ -35,13 +35,13 @@ class OAuth2Processor(object):
         except KeyError:
             raise InvalidRequest("No client_secret specified")
         try:
-            client = ClientStore.get_client(client_id, client_secret)
-        except ClientStore.InvalidClient:
+            client = self.client_store.get_client(client_id, client_secret)
+        except self.client_store.InvalidClient:
             raise InvalidClient()
         scope = kwargs.get('scope')
         if not self.policy.check_scope(client, scope):
             raise InvalidScope()
-        return policy.new_access_token(client, scope, refresh_token_obj)
+        return self.policy.new_access_token(client, scope)
 
     def oauth2_flow_refresh_token(self, **kwargs):
         try:

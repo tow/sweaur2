@@ -1,15 +1,30 @@
 from __future__ import absolute_import
 
+from .client import Client
 from .client_store import ClientStore
-from .exceptions import InvalidRequest, UnsupportedGrantType
+from .exceptions import InvalidClient, InvalidRequest, UnsupportedGrantType
 from .policy import LowSecurityPolicy
 from .processor import OAuth2Processor
 from .token_store import TokenStore
 
 
+class ClientForTest(Client):
+    pass
+
+class ClientStoreForTest(ClientStore):
+    clients = {('ID', 'SECRET'): Client()}
+    def get_client(self, client_id, client_secret):
+        try:
+            return self.clients[(client_id, client_secret)]
+        except KeyError:
+            raise self.InvalidClient()
+
+
 class TestOAuth2Processor(object):
     def setUp(self):
-        self.processor = OAuth2Processor(TokenStore(), ClientStore(), LowSecurityPolicy())
+        self.processor = OAuth2Processor(client_store=ClientStoreForTest(),
+                                         token_store=TokenStore(),
+                                         policy=LowSecurityPolicy())
 
 
 class TestObviousFailures(TestOAuth2Processor):
@@ -50,3 +65,10 @@ class TestClientCredentialFailures(TestOAuth2Processor):
             assert e.error_description == 'No client_secret specified'
         else:
             assert False
+
+    def testInvalidClient(self):
+        try:
+            self.processor.oauth2_token_endpoint(grant_type='client_credentials', client_id='NOID', client_secret='NOSECRET')
+        except InvalidClient, e:
+            assert e.error == 'invalid_client'
+            assert e.error_description == ''
