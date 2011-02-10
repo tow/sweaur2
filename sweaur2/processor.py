@@ -8,11 +8,11 @@ class OAuth2Processor(object):
         self.token_store = token_store
         self.policy = policy
 
-    def oauth2_token_endpoint(self, grant_type, **kwargs):
+    def oauth2_token_endpoint(self, **kwargs):
         try:
             grant_type = kwargs.pop('grant_type')
         except KeyError:
-            raise OAuth2Error("invalid_request", "No grant_type specified")
+            raise InvalidRequest("No grant_type specified")
         try:
             oauth2_flow = getattr(self, 'oauth2_flow_%s' % grant_type)
         except AttributeError:
