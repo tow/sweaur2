@@ -47,6 +47,22 @@ class TestOAuth2Processor(object):
                                          token_store=self.token_store,
                                          policy=self.policy)
 
+    def check_access_token(self, access_token, client, scope, refresh_token_expected):
+        assert access_token.client == client
+        assert access_token.scope == scope
+        assert access_token.token_type == self.policy.token_type(client, scope)
+        assert access_token.expiry_time == self.policy.expiry_time(client, scope)
+        assert access_token.old_refresh_token is None
+        refresh_token = access_token.new_refresh_token
+        if refresh_token_expected:
+            assert refresh_token is not None
+            assert refresh_token.client == client
+            assert refresh_token.scope == scope
+            assert refresh_token.token_type == self.policy.token_type(client, scope)
+            assert refresh_token.access_token == access_token
+        else:
+            assert refresh_token is None
+
 
 class TestObviousFailures(TestOAuth2Processor):
     def testNoGrantType(self):
@@ -103,26 +119,19 @@ class TestClientCredentials(TestOAuth2Processor):
         access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
                                                             client_id=self.client_all_scopes.client_id,
                                                             client_secret=self.client_all_scopes.client_secret)
-        assert access_token.client == self.client_all_scopes
-        assert access_token.scope == scope
-        assert access_token.token_type == self.policy.token_type(self.client_all_scopes, scope)
-        assert access_token.expiry_time == self.policy.expiry_time(self.client_all_scopes, scope)
-        assert access_token.old_refresh_token is None
-        assert access_token.new_refresh_token is None
+        self.check_access_token(access_token, self.client_all_scopes, scope, refresh_token_expected=False)
 
     def testTokenOkNoScopeWithRefresh(self):
         scope = None
         access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
                                                             client_id=self.client_refresh_token.client_id,
                                                             client_secret=self.client_refresh_token.client_secret)
-        assert access_token.client == self.client_refresh_token
-        assert access_token.scope == scope
-        assert access_token.token_type == self.policy.token_type(self.client_refresh_token, scope)
-        assert access_token.expiry_time == self.policy.expiry_time(self.client_refresh_token, scope)
-        assert access_token.old_refresh_token is None
-        refresh_token = access_token.new_refresh_token
-        assert refresh_token is not None
-        assert refresh_token.client == self.client_refresh_token
-        assert refresh_token.scope == scope
-        assert refresh_token.token_type == self.policy.token_type(self.client_refresh_token, scope)
-        assert refresh_token.access_token == access_token
+        self.check_access_token(access_token, self.client_refresh_token, scope, refresh_token_expected=True)
+
+    def testTokenOkWithScope(self):
+        scope = "SCOPE"
+        access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
+                                                            client_id=self.client_refresh_token.client_id,
+                                                            client_secret=self.client_refresh_token.client_secret,
+                                                            scope=scope)
+        self.check_access_token(access_token, self.client_refresh_token, scope, refresh_token_expected=True)
