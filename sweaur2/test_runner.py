@@ -254,3 +254,14 @@ class TestRefreshToken(TestOAuth2Processor):
                                                                     scope=scope+" MORE_SCOPE")
         except InvalidScope, e:
             assert e.error == 'invalid_scope'
+
+    def testRefreshTokenPreservesScope(self):
+        client = self.client_refresh_token
+        scope = 'SCOPE'
+        access_token = self.policy.new_access_token(client, scope)
+        self.token_store.save(access_token)
+        refresh_token = access_token.new_refresh_token
+        # request next token without mentioning scope; it should be preserved.
+        new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
+                                                                refresh_token=refresh_token.token_string)
+        self.check_access_token(new_access_token, client, scope, refresh_token_expected=True, old_refresh_token=refresh_token)
