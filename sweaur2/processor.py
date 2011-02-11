@@ -55,7 +55,7 @@ class OAuth2Processor(object):
         except self.token_store.InvalidToken:
             raise InvalidClient()
         if refresh_token_obj.new_access_token:
-            raise InvalidRequest() # ? because it's been used already
+            raise InvalidGrant('refresh_token is no longer valid')
         client = refresh_token_obj.client
         scope = kwargs.get('scope', '')
         if not self.policy.check_scope(client, scope) \

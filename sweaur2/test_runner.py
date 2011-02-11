@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from .client import Client
 from .client_store import ClientStore
-from .exceptions import InvalidClient, InvalidRequest, InvalidScope, UnsupportedGrantType
+from .exceptions import InvalidClient, InvalidGrant, InvalidRequest, InvalidScope, UnsupportedGrantType
 from .policy import LowSecurityPolicy
 from .processor import OAuth2Processor
 from .token_store import TokenStore
@@ -224,3 +224,20 @@ class TestRefreshToken(TestOAuth2Processor):
                                                                 refresh_token=refresh_token.token_string,
                                                                 scope=scope)
         self.check_access_token(new_access_token, client, scope, refresh_token_expected=True, old_refresh_token=refresh_token)
+
+    def testReuseRefreshTokenFails(self):
+        client = self.client_refresh_token
+        scope = ''
+        access_token = self.policy.new_access_token(client, scope)
+        self.token_store.save(access_token)
+        refresh_token = access_token.new_refresh_token
+        new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
+                                                                refresh_token=refresh_token.token_string)
+        try:
+            new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
+                                                                    refresh_token=refresh_token.token_string)
+        except InvalidGrant, e:
+            assert e.error == 'invalid_grant'
+            assert e.error_description == 'refresh_token is no longer valid'
+        else:
+            assert False

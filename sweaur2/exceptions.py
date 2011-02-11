@@ -21,7 +21,7 @@ class InvalidClient(OAuth2Error):
     error = "invalid_client"
 
 class InvalidGrant(OAuth2Error):
-    error = "invalid_client"
+    error = "invalid_grant"
 
 class UnauthorizedClient(OAuth2Error):
     error = "unauthorized_client"
