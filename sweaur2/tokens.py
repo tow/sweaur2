@@ -23,7 +23,11 @@ class AccessToken(Token):
         self.expiry_time = expiry_time
         self.token_string = token_type.new_token_string(token_length)
         self.new_refresh_token = new_refresh_token
+        if self.new_refresh_token:
+            self.new_refresh_token.access_token = self
         self.old_refresh_token = old_refresh_token
+        if self.old_refresh_token:
+            assert self.old_refresh_token.access_token == self
 
     def as_dict(self):
         d = {"access_token": self.token,
@@ -35,7 +39,7 @@ class AccessToken(Token):
 
 
 class RefreshToken(Token):
-    def __init__(self, client, scope, token_type, access_token):
+    def __init__(self, client, scope, token_type, access_token=None):
         self.client = client
         self.scope = scope
         self.token_type = token_type

@@ -8,17 +8,17 @@ class TokenType(object):
 
     @classmethod
     def random_string(cls, length):
-        return ''.join([random.choice(cls.allowed_chars) for i in range(l)])
+        return ''.join([random.choice(cls.allowed_chars) for i in range(length)])
 
-    def new_token(self):
+    def new_token_string(self):
         raise TypeError("Subclass me!")
 
 class BearerTokenType(TokenType):
     allowed_chars = [chr(a) for a in range(33,127)]
 
     @classmethod
-    def new_token(cls, token_length):
-        return self.random_string(token_length)
+    def new_token_string(cls, token_length):
+        return cls.random_string(token_length)
 
     # check ...
 

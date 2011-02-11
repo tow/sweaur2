@@ -29,25 +29,35 @@ class Policy(object):
         True/False"""
         raise TypeError("Subclass me!")
 
-    def new_access_token(self, client, scope):
-        token_type = client.token_type(scope)
+    def new_access_token(self, client, scope, old_refresh_token=None):
+        token_type = self.token_type(client, scope)
         expiry_time = self.expiry_time(client, scope)
         if self.refresh_token(client, scope):
-            refresh_token = RefreshToken(self, scope)
+            refresh_token = RefreshToken(client=client, scope=scope,
+                                         token_type=token_type)
         else:
             refresh_token = None
         token_length = self.token_length(client, scope)
-        return AccessToken(client, scope, token_type, expiry_time, token_length, refresh_token)
+        return AccessToken(client=client, scope=scope,
+                           token_type=token_type, expiry_time=expiry_time,
+                           token_length=token_length,
+                           new_refresh_token=refresh_token,
+                           old_refresh_token=old_refresh_token)
 
     def refresh_access_token(self, client, scope, old_refresh_token):
-        token_type = self.client.token_type
+        token_type = self.token_type(client, scope)
         expiry_time = self.expiry_time(client, scope)
         if self.refresh_token(client, scope):
-            new_refresh_token = RefreshToken(self, scope)
+            new_refresh_token = RefreshToken(client=client, scope=scope,
+                                             token_type=token_type)
         else:
             new_refresh_token = None
         token_length = self.token_length(client, scope)
-        return AccessToken(client, scope, token_type, expiry_time, token_length, new_refresh_token, old_refresh_token)
+        return AccessToken(client=client, scope=scope,
+                           token_type=token_type, expiry_time=expiry_time,
+                           token_length=token_length,
+                           new_refresh_token=new_refresh_token,
+                           old_refresh_token=old_refresh_token)
         
 
 class LowSecurityPolicy(Policy):
