@@ -53,10 +53,13 @@ class TokenStoreForTest(TokenStore):
 
 
 class PolicyForTest(LowSecurityPolicy):
+    reject_client = False
     def refresh_token(self, client, scope):
         return client == TestOAuth2Processor.client_refresh_token
 
     def check_scope(self, client, scope):
+        if self.reject_client:
+            return False
         return client != TestOAuth2Processor.client_no_scopes
 
 
@@ -254,6 +257,9 @@ class TestRefreshToken(TestOAuth2Processor):
                                                                     scope=scope+" MORE_SCOPE")
         except InvalidScope, e:
             assert e.error == 'invalid_scope'
+            assert e.error_description == ''
+        else:
+            assert False
 
     def testRefreshTokenPreservesScope(self):
         client = self.client_refresh_token
@@ -265,3 +271,21 @@ class TestRefreshToken(TestOAuth2Processor):
         new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
                                                                 refresh_token=refresh_token.token_string)
         self.check_access_token(new_access_token, client, scope, refresh_token_expected=True, old_refresh_token=refresh_token)
+
+    def testRefreshTokenFailsAfterPolicyChange(self):
+        client = self.client_refresh_token
+        scope = ''
+        access_token = self.policy.new_access_token(client, scope)
+        self.token_store.save(access_token)
+        refresh_token = access_token.new_refresh_token
+        # change policy on the server to reduce the scope available to the client
+        self.policy.reject_client = True
+        try:
+            new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
+                                                                    refresh_token=refresh_token.token_string)
+        except InvalidScope, e:
+            assert e.error == 'invalid_scope'
+            assert e.error_description == ''
+        else:
+            assert False
+        self.policy.reject_client = False
