@@ -8,7 +8,11 @@ class Token(object):
 
     @classmethod
     def parse_scope_string(cls, scope_string):
-        return set(cls.lws_re.sub(' ', scope_string.strip()).split(' '))
+        scope_string = cls.lws_re.sub(' ', scope_string.strip())
+        if scope_string:
+            return set(cls.lws_re.sub(' ', scope_string.strip()).split(' '))
+        else:
+            return set()
 
     def check_scope(self, scope_string_1, scope_string_2):
         """Are all the scopes in scope_string_1 within the scopes in scope_string_2?"""
@@ -48,4 +52,4 @@ class RefreshToken(Token):
         self.new_access_token = None
 
     def check_sub_scope(self, scope):
-        return self.check_scope(self.scope, scope)
+        return self.check_scope(scope, self.scope)
