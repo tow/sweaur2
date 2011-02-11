@@ -25,6 +25,11 @@ class ClientStoreForTest(ClientStore):
             raise self.InvalidClient()
 
 
+class TokenStoreForTest(TokenStore):
+    def get_refresh_token(self, refresh_token):
+        raise self.InvalidToken()
+
+
 class PolicyForTest(LowSecurityPolicy):
     def refresh_token(self, client, scope):
         return client == TestOAuth2Processor.client_refresh_token
@@ -44,7 +49,7 @@ class TestOAuth2Processor(object):
 
     def setUp(self):
         self.client_store = ClientStoreForTest()
-        self.token_store = TokenStore()
+        self.token_store = TokenStoreForTest()
         self.policy = PolicyForTest()
         self.processor = OAuth2Processor(client_store=self.client_store,
                                          token_store=self.token_store,
@@ -163,5 +168,15 @@ class TestRefreshToken(TestOAuth2Processor):
         except InvalidRequest, e:
             assert e.error == 'invalid_request'
             assert e.error_description == 'No refresh_token specified'
+        else:
+            assert False
+
+    def testInvalidRefreshToken(self):
+        try:
+            self.processor.oauth2_token_endpoint(grant_type='refresh_token',
+                                                 refresh_token='WRONG')
+        except InvalidClient, e:
+            assert e.error == 'invalid_client'
+            assert e.error_description == ''
         else:
             assert False

@@ -49,8 +49,8 @@ class OAuth2Processor(object):
         except KeyError:
             raise InvalidRequest('No refresh_token specified')
         try:
-            refresh_token_obj = TokenStore.get_refresh_token(refresh_token)
-        except TokenStore.InvalidToken:
+            refresh_token_obj = self.token_store.get_refresh_token(refresh_token)
+        except self.token_store.InvalidToken:
             raise InvalidClient()
         client = refresh_token_obj.client
         scope = kwargs.get('scope')

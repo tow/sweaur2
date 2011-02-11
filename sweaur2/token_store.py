@@ -2,4 +2,5 @@ from __future__ import absolute_import
 
 
 class TokenStore(object):
-    pass
+    class InvalidToken(Exception):
+        pass
