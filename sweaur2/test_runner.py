@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from .client import Client
 from .client_store import ClientStore
-from .exceptions import InvalidClient, InvalidRequest, UnsupportedGrantType
+from .exceptions import InvalidClient, InvalidRequest, InvalidScope, UnsupportedGrantType
 from .policy import LowSecurityPolicy
 from .processor import OAuth2Processor
 from .token_store import TokenStore
@@ -29,14 +29,17 @@ class PolicyForTest(LowSecurityPolicy):
     def refresh_token(self, client, scope):
         return client == TestOAuth2Processor.client_refresh_token
 
+    def check_scope(self, client, scope):
+        return client != TestOAuth2Processor.client_no_scopes
+
 
 class TestOAuth2Processor(object):
     client_all_scopes = ClientForTest('ID1', 'SECRET1')
-    client_some_scopes = ClientForTest('ID2', 'SECRET2')
+    client_no_scopes = ClientForTest('ID2', 'SECRET2')
     client_refresh_token = ClientForTest('ID3', 'SECRET3')
     invalid_client = ClientForTest('NOID', 'NOSECRET')
     clients = {client_all_scopes.id_secret(): client_all_scopes,
-               client_some_scopes.id_secret(): client_some_scopes,
+               client_no_scopes.id_secret(): client_no_scopes,
                client_refresh_token.id_secret(): client_refresh_token}
 
     def setUp(self):
@@ -115,23 +118,39 @@ class TestClientCredentials(TestOAuth2Processor):
             assert e.error_description == ''
 
     def testTokenOkNoScopeNoRefresh(self):
+        client = self.client_all_scopes
         scope = None
         access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                            client_id=self.client_all_scopes.client_id,
-                                                            client_secret=self.client_all_scopes.client_secret)
-        self.check_access_token(access_token, self.client_all_scopes, scope, refresh_token_expected=False)
+                                                            client_id=client.client_id,
+                                                            client_secret=client.client_secret)
+        self.check_access_token(access_token, client, scope, refresh_token_expected=False)
 
     def testTokenOkNoScopeWithRefresh(self):
+        client = self.client_refresh_token
         scope = None
         access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                            client_id=self.client_refresh_token.client_id,
-                                                            client_secret=self.client_refresh_token.client_secret)
-        self.check_access_token(access_token, self.client_refresh_token, scope, refresh_token_expected=True)
+                                                            client_id=client.client_id,
+                                                            client_secret=client.client_secret)
+        self.check_access_token(access_token, client, scope, refresh_token_expected=True)
 
     def testTokenOkWithScope(self):
+        client = self.client_refresh_token
         scope = "SCOPE"
         access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                            client_id=self.client_refresh_token.client_id,
-                                                            client_secret=self.client_refresh_token.client_secret,
+                                                            client_id=client.client_id,
+                                                            client_secret=client.client_secret,
                                                             scope=scope)
-        self.check_access_token(access_token, self.client_refresh_token, scope, refresh_token_expected=True)
+        self.check_access_token(access_token, client, scope, refresh_token_expected=True)
+
+    def testTokenFailWithScope(self):
+        client = self.client_no_scopes
+        scope = "SCOPE"
+        try:
+            access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
+                                                                client_id=client.client_id,
+                                                                client_secret=client.client_secret,
+                                                                scope=scope)
+        except InvalidScope, e:
+            assert e.error == 'invalid_scope'
+        else:
+            assert False
