@@ -146,11 +146,22 @@ class TestClientCredentials(TestOAuth2Processor):
         client = self.client_no_scopes
         scope = "SCOPE"
         try:
-            access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                                client_id=client.client_id,
-                                                                client_secret=client.client_secret,
-                                                                scope=scope)
+            self.processor.oauth2_token_endpoint(grant_type='client_credentials',
+                                                 client_id=client.client_id,
+                                                 client_secret=client.client_secret,
+                                                 scope=scope)
         except InvalidScope, e:
             assert e.error == 'invalid_scope'
+        else:
+            assert False
+
+
+class TestRefreshToken(TestOAuth2Processor):
+    def testNoRefreshToken(self):
+        try:
+            self.processor.oauth2_token_endpoint(grant_type='refresh_token')
+        except InvalidRequest, e:
+            assert e.error == 'invalid_request'
+            assert e.error_description == 'No refresh_token specified'
         else:
             assert False
