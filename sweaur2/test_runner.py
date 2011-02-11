@@ -241,3 +241,16 @@ class TestRefreshToken(TestOAuth2Processor):
             assert e.error_description == 'refresh_token is no longer valid'
         else:
             assert False
+
+    def testRefreshTokenTooWideScopeFails(self):
+        client = self.client_refresh_token
+        scope = 'SCOPE'
+        access_token = self.policy.new_access_token(client, scope)
+        self.token_store.save(access_token)
+        refresh_token = access_token.new_refresh_token
+        try:
+            new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
+                                                                    refresh_token=refresh_token.token_string,
+                                                                    scope=scope+" MORE_SCOPE")
+        except InvalidScope, e:
+            assert e.error == 'invalid_scope'
