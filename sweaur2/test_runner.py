@@ -6,6 +6,7 @@ from .exceptions import InvalidClient, InvalidRequest, InvalidScope, Unsupported
 from .policy import LowSecurityPolicy
 from .processor import OAuth2Processor
 from .token_store import TokenStore
+from .tokens import AccessToken, RefreshToken
 
 
 class ClientForTest(Client):
@@ -26,8 +27,29 @@ class ClientStoreForTest(ClientStore):
 
 
 class TokenStoreForTest(TokenStore):
-    def get_refresh_token(self, refresh_token):
-        raise self.InvalidToken()
+    def __init__(self):
+        self.access_tokens = {}
+        self.refresh_tokens = {}
+
+    def save(self, token):
+        if isinstance(token, AccessToken):
+            self.access_tokens[token.token_string] = token
+            if token.new_refresh_token:
+                self.save(token.new_refresh_token)
+        elif isinstance(token, RefreshToken):
+            self.refresh_tokens[token.token_string] = token
+
+    def get_refresh_token(self, refresh_token_string):
+        try:
+            return self.refresh_tokens[refresh_token_string]
+        except KeyError:
+            raise self.InvalidToken()
+
+    def get_access_token(self, access_token_string):
+        try:
+            return self.access_tokens[access_token_string]
+        except KeyError:
+            raise self.InvalidToken()
 
 
 class PolicyForTest(LowSecurityPolicy):
@@ -55,12 +77,11 @@ class TestOAuth2Processor(object):
                                          token_store=self.token_store,
                                          policy=self.policy)
 
-    def check_access_token(self, access_token, client, scope, refresh_token_expected):
+    def check_access_token(self, access_token, client, scope, refresh_token_expected, old_refresh_token):
         assert access_token.client == client
         assert access_token.scope == scope
         assert access_token.token_type == self.policy.token_type(client, scope)
         assert access_token.expiry_time == self.policy.expiry_time(client, scope)
-        assert access_token.old_refresh_token is None
         refresh_token = access_token.new_refresh_token
         if refresh_token_expected:
             assert refresh_token is not None
@@ -70,6 +91,7 @@ class TestOAuth2Processor(object):
             assert refresh_token.access_token == access_token
         else:
             assert refresh_token is None
+        assert access_token.old_refresh_token == old_refresh_token
 
 
 class TestObviousFailures(TestOAuth2Processor):
@@ -128,7 +150,7 @@ class TestClientCredentials(TestOAuth2Processor):
         access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
                                                             client_id=client.client_id,
                                                             client_secret=client.client_secret)
-        self.check_access_token(access_token, client, scope, refresh_token_expected=False)
+        self.check_access_token(access_token, client, scope, refresh_token_expected=False, old_refresh_token=None)
 
     def testTokenOkNoScopeWithRefresh(self):
         client = self.client_refresh_token
@@ -136,7 +158,7 @@ class TestClientCredentials(TestOAuth2Processor):
         access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
                                                             client_id=client.client_id,
                                                             client_secret=client.client_secret)
-        self.check_access_token(access_token, client, scope, refresh_token_expected=True)
+        self.check_access_token(access_token, client, scope, refresh_token_expected=True, old_refresh_token=None)
 
     def testTokenOkWithScope(self):
         client = self.client_refresh_token
@@ -145,7 +167,7 @@ class TestClientCredentials(TestOAuth2Processor):
                                                             client_id=client.client_id,
                                                             client_secret=client.client_secret,
                                                             scope=scope)
-        self.check_access_token(access_token, client, scope, refresh_token_expected=True)
+        self.check_access_token(access_token, client, scope, refresh_token_expected=True, old_refresh_token=None)
 
     def testTokenFailWithScope(self):
         client = self.client_no_scopes
@@ -162,6 +184,7 @@ class TestClientCredentials(TestOAuth2Processor):
 
 
 class TestRefreshToken(TestOAuth2Processor):
+
     def testNoRefreshToken(self):
         try:
             self.processor.oauth2_token_endpoint(grant_type='refresh_token')
@@ -180,3 +203,13 @@ class TestRefreshToken(TestOAuth2Processor):
             assert e.error_description == ''
         else:
             assert False
+
+    def testTokenOk(self):
+        client = self.client_refresh_token
+        scope = ''
+        access_token = self.policy.new_access_token(client, scope)
+        self.token_store.save(access_token)
+        refresh_token = access_token.new_refresh_token
+        new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
+                                                                refresh_token=refresh_token.token_string)
+        self.check_access_token(new_access_token, client, scope, refresh_token_expected=True, old_refresh_token=refresh_token)

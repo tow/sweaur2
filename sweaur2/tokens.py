@@ -7,8 +7,8 @@ class Token(object):
     lws_re = re.compile('[ \t\n]+')
 
     @classmethod
-    def parse_scope_string(scope_string):
-        scopes = set(self.lws_re.sub(' ', scope_string.strip()).split(' '))
+    def parse_scope_string(cls, scope_string):
+        return set(cls.lws_re.sub(' ', scope_string.strip()).split(' '))
 
     def check_scope(self, scope_string_1, scope_string_2):
         """Are all the scopes in scope_string_1 within the scopes in scope_string_2?"""
@@ -27,7 +27,7 @@ class AccessToken(Token):
             self.new_refresh_token.access_token = self
         self.old_refresh_token = old_refresh_token
         if self.old_refresh_token:
-            assert self.old_refresh_token.access_token == self
+            self.old_refresh_token.new_access_token = self
 
     def as_dict(self):
         d = {"access_token": self.token,
@@ -39,11 +39,13 @@ class AccessToken(Token):
 
 
 class RefreshToken(Token):
-    def __init__(self, client, scope, token_type, access_token=None):
+    def __init__(self, client, scope, token_type, token_length, access_token=None):
         self.client = client
         self.scope = scope
         self.token_type = token_type
         self.access_token = access_token
+        self.token_string = token_type.new_token_string(token_length)
+        self.new_access_token = None
 
-    def check_scope(self, scope):
+    def check_sub_scope(self, scope):
         return self.check_scope(self.scope, scope)

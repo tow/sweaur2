@@ -41,7 +41,9 @@ class OAuth2Processor(object):
         scope = kwargs.get('scope')
         if not self.policy.check_scope(client, scope):
             raise InvalidScope()
-        return self.policy.new_access_token(client, scope)
+        access_token = self.policy.new_access_token(client, scope)
+        self.token_store.save(access_token)
+        return access_token
 
     def oauth2_flow_refresh_token(self, **kwargs):
         try:
@@ -52,8 +54,16 @@ class OAuth2Processor(object):
             refresh_token_obj = self.token_store.get_refresh_token(refresh_token)
         except self.token_store.InvalidToken:
             raise InvalidClient()
+        if refresh_token_obj.new_access_token:
+            raise InvalidRequest() # ? because it's been used already
         client = refresh_token_obj.client
-        scope = kwargs.get('scope')
-        if not self.policy.check_scope(client, scope) or refresh_token_obj.check_scope(scope):
+        scope = kwargs.get('scope', '')
+        if not self.policy.check_scope(client, scope) \
+            or not refresh_token_obj.check_sub_scope(scope):
+            # policy might have changed since we granted the refresh_token,
+            # or it may simply be an invalid sub-scope
             raise InvalidScope()
-        return self.policy.refresh_access_token(client, scope, refresh_token_obj)
+        access_token = self.policy.refresh_access_token(client, scope, refresh_token_obj)
+        self.token_store.save(refresh_token)
+        self.token_store.save(access_token)
+        return access_token
