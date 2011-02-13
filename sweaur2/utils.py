@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import re, urllib
+import random, re, urllib
 
 
 lws_re = re.compile('[ \t\v]+')
@@ -38,3 +38,7 @@ def parse_qsl(querystring):
         new_params.append((urllib.unquote_plus(p[0]),
                            urllib.unquote_plus(p[1])))
     return new_params
+
+default_allowed_chars = ''.join(chr(i) for i in range(32, 127))
+def random_string(length, allowed_chars=default_allowed_chars):
+    return ''.join([random.choice(allowed_chars) for i in range(length)])

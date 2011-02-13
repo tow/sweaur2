@@ -4,7 +4,7 @@ from .mac_client import RequestSigner, Hmac_Sha_1_RequestSigner, Hmac_Sha_256_Re
 from .request import Request
 
 class TestSigning(object):
-    timestamp = '123456789'
+    timestamp = '1234567890'
     nonce = 'nonce'
 
     @classmethod
@@ -18,7 +18,7 @@ class TestSigning(object):
     def test_normalized_request_string(self):
         signer = RequestSigner('ACCESS_TOKEN', 'ACCESS_TOKEN_SECRET', self.timestamp_generator, self.nonce_generator)
         request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com'}, '')
-        assert signer.normalized_request_string(request, '123456789', 'nonce') == """\
+        assert signer.normalized_request_string(request, self.timestamp, self.nonce) == """\
 ACCESS_TOKEN
 %s
 %s
@@ -30,3 +30,17 @@ example.com
 fmt=json
 q=test
 """ % (self.timestamp, self.nonce)
+
+    def test_hmac_sha_1_signing(self):
+        signer = Hmac_Sha_1_RequestSigner('ACCESS_TOKEN', 'ACCESS_TOKEN_SECRET', self.timestamp_generator, self.nonce_generator)
+        request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com'}, '')
+        print signer.make_signed_request_header(request)
+        assert signer.make_signed_request_header(request) == \
+'Authorization: MAC token="ACCESS_TOKEN" timestamp="1234567890" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'
+
+    def test_hmac_sha_256_signing(self):
+        signer = Hmac_Sha_256_RequestSigner('ACCESS_TOKEN', 'ACCESS_TOKEN_SECRET', self.timestamp_generator, self.nonce_generator)
+        request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com'}, '')
+        print signer.make_signed_request_header(request)
+        assert signer.make_signed_request_header(request) == \
+'Authorization: MAC token="ACCESS_TOKEN" timestamp="1234567890" nonce="nonce" signature="lO/dtdfkwLVKnD0BzaxUyDTk8poI+vpxxh535VRF2xA="'

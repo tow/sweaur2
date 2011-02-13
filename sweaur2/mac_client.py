@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import base64, hashlib, hmac, re, time, urlparse
 
-from .utils import normalize_port_number, normalize_query_parameters
+from .utils import normalize_port_number, normalize_query_parameters, random_string
 
 
 ascii_subset_re = r'[^"^\\]+'
@@ -14,8 +14,10 @@ timestamp_re_obj = re.compile('^%s$' % timestamp_re)
 def default_timestamp_generator():
     return unicode(int(time.time()))
 
+# all printable ascii chars except " and \
+ascii_subset_list = ''.join(chr(i) for i in range(32, 127) if i not in (34, 92)) 
 def default_nonce_generator():
-    return 'RANDOM_STRING'
+    return random_string(8, ascii_subset_list)
 
 
 class RequestSigner(object):
@@ -74,7 +76,7 @@ class Hmac_Sha_1_RequestSigner(RequestSigner):
     def sign_request(self, request, timestamp, nonce):
         return base64.b64encode(
             hmac.new(self.access_token_secret,
-                     normalized_request_string(request, timestamp, nonce),
+                     self.normalized_request_string(request, timestamp, nonce),
                      hashlib.sha1).digest()
         )
 
@@ -83,7 +85,7 @@ class Hmac_Sha_256_RequestSigner(RequestSigner):
     def sign_request(self, request, timestamp, nonce):
         return base64.b64encode(
             hmac.new(self.access_token_secret,
-                     normalized_request_string(request, timestamp, nonce),
+                     self.normalized_request_string(request, timestamp, nonce),
                      hashlib.sha256).digest()
         )
 
