@@ -36,7 +36,7 @@ class OAuth2Processor(object):
             raise InvalidRequest("No client_secret specified")
         try:
             client = self.client_store.get_client(client_id, client_secret)
-        except self.client_store.InvalidClient:
+        except self.client_store.NoSuchClient:
             raise InvalidClient()
         scope = kwargs.get('scope')
         if not self.policy.check_scope(client, scope):

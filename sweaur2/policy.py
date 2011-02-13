@@ -10,7 +10,7 @@ class Policy(object):
         Expected result: BearerTokenType or MACTokenType."""
         raise TypeError("Subclass me!")
 
-    def expiry_time(self, client, scope):
+    def expires_in(self, client, scope):
         """What is the expiry time (in seconds) of the access token?
         None means no expiry."""
         raise TypeError("Subclass me!")
@@ -31,7 +31,7 @@ class Policy(object):
 
     def new_access_token(self, client, scope, old_refresh_token=None):
         token_type = self.token_type(client, scope)
-        expiry_time = self.expiry_time(client, scope)
+        expires_in = self.expires_in(client, scope)
         token_length = self.token_length(client, scope)
         if self.refresh_token(client, scope):
             refresh_token = RefreshToken.create(client=client, scope=scope,
@@ -39,14 +39,14 @@ class Policy(object):
         else:
             refresh_token = None
         return AccessToken.create(client=client, scope=scope,
-                                  token_type=token_type, expiry_time=expiry_time,
+                                  token_type=token_type, expires_in=expires_in,
                                   token_length=token_length,
                                   new_refresh_token=refresh_token,
                                   old_refresh_token=old_refresh_token)
 
     def refresh_access_token(self, client, scope, old_refresh_token):
         token_type = self.token_type(client, scope)
-        expiry_time = self.expiry_time(client, scope)
+        expires_in = self.expires_in(client, scope)
         token_length = self.token_length(client, scope)
         if self.refresh_token(client, scope):
             new_refresh_token = RefreshToken.create(client=client, scope=scope,
@@ -54,7 +54,7 @@ class Policy(object):
         else:
             new_refresh_token = None
         return AccessToken.create(client=client, scope=scope,
-                                  token_type=token_type, expiry_time=expiry_time,
+                                  token_type=token_type, expires_in=expires_in,
                                   token_length=token_length,
                                   new_refresh_token=new_refresh_token,
                                   old_refresh_token=old_refresh_token)
@@ -65,7 +65,7 @@ class LowSecurityPolicy(Policy):
     def token_type(self, client, scope):
         return 'Bearer'
 
-    def expiry_time(self, client, scope):
+    def expires_in(self, client, scope):
         return None
 
     def refresh_token(self, client, scope):
@@ -82,7 +82,7 @@ class DefaultPolicy(Policy):
     def token_type(self, client, scope):
         return 'MAC'
 
-    def expiry_time(self, client, scope):
+    def expires_in(self, client, scope):
         return 3600
 
     def refresh_token(self, client, scope):

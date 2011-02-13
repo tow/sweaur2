@@ -23,7 +23,7 @@ class ClientStoreForTest(ClientStore):
         try:
             return TestOAuth2Processor.clients[(client_id, client_secret)]
         except KeyError:
-            raise self.InvalidClient()
+            raise self.NoSuchClient()
 
 
 class TokenStoreForTest(TokenStore):
@@ -84,7 +84,7 @@ class TestOAuth2Processor(object):
         assert access_token.client == client
         assert access_token.scope == scope
         assert access_token.token_type == self.policy.token_type(client, scope)
-        assert access_token.expiry_time == self.policy.expiry_time(client, scope)
+        assert access_token.expires_in == self.policy.expires_in(client, scope)
         refresh_token = access_token.new_refresh_token
         if refresh_token_expected:
             assert refresh_token is not None

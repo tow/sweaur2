@@ -14,11 +14,11 @@ class Token(object):
 
 
 class AccessToken(Token):
-    def __init__(self, client, scope, token_type, expiry_time, token_length, new_refresh_token, old_refresh_token)
+    def __init__(self, client, scope, token_type, expires_in, token_length, new_refresh_token, old_refresh_token)
         self.client = client
         self.scope = scope
         self.token_type = token_type
-        self.expiry_time = expiry_time
+        self.expires_in = expires_in
         self.token_string = token_type.new_token_string(token_length)
         self.new_refresh_token = new_refresh_token
         self.old_refresh_token = old_refresh_token
@@ -26,10 +26,10 @@ class AccessToken(Token):
     def as_dict(self):
         d = {"access_token": self.token,
              "token_type": token_type.name}
-        if self.expiry_time:
-            d["expires_in"] = self.expiry_time
+        if self.expires_in:
+            d["expires_in"] = self.expires_in
         if self.old_refresh_token:
-            d["refresh_token"] = self.old_refresh_token.token
+            d["refresh_token"] = self.old_refresh_token.token_string
 
 
 class RefreshToken(Token):
