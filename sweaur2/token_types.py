@@ -4,15 +4,23 @@ from .utils import random_string
 
 
 class TokenType(object):
-    def new_token_string(self):
-        raise TypeError("Subclass me!")
-
-class BearerTokenType(TokenType):
     @classmethod
     def new_token_string(cls, token_length):
         return random_string(token_length)
 
-    # check ...
+
+class BearerTokenType(TokenType):
+    pass
+
 
 class MACTokenType(TokenType):
-    pass
+    def __init__(self, algorithm):
+        try:
+            self.signer_class = default_signers[algorithm]
+        except KeyError:
+            raise ValueError("Unknown MAC signing algorithm: %s" % algorithm)
+
+token_type_map = {
+   'Bearer': BearerTokenType,
+   'MAC': MACTokenType,
+}

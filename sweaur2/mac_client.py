@@ -25,9 +25,12 @@ class RequestSigner(object):
     access_token_secret_re_obj = ascii_subset_re_obj
     nonce_re_obj = ascii_subset_re_obj
 
-    def __init__(self, access_token, access_token_secret,
+    def __init__(self, access_token_obj,
                  timestamp_generator=default_timestamp_generator,
                  nonce_generator=default_nonce_generator):
+        assert default_signers[access_token_obj.algorithm] == self.__class__
+        access_token = access_token_obj.token_string
+        access_token_secret = access_token_obj.secret_token_string
         if not self.access_token_re_obj.match(access_token):
             raise ValueError("Invalid access_token for MAC authentication")
         if not self.access_token_secret_re_obj.match(access_token):

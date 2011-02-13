@@ -34,38 +34,36 @@ class Policy(object):
         expiry_time = self.expiry_time(client, scope)
         token_length = self.token_length(client, scope)
         if self.refresh_token(client, scope):
-            refresh_token = RefreshToken(client=client, scope=scope,
-                                         token_type=token_type,
-                                         token_length=token_length)
+            refresh_token = RefreshToken.create(client=client, scope=scope,
+                                                token_length=token_length)
         else:
             refresh_token = None
-        return AccessToken(client=client, scope=scope,
-                           token_type=token_type, expiry_time=expiry_time,
-                           token_length=token_length,
-                           new_refresh_token=refresh_token,
-                           old_refresh_token=old_refresh_token)
+        return AccessToken.create(client=client, scope=scope,
+                                  token_type=token_type, expiry_time=expiry_time,
+                                  token_length=token_length,
+                                  new_refresh_token=refresh_token,
+                                  old_refresh_token=old_refresh_token)
 
     def refresh_access_token(self, client, scope, old_refresh_token):
         token_type = self.token_type(client, scope)
         expiry_time = self.expiry_time(client, scope)
         token_length = self.token_length(client, scope)
         if self.refresh_token(client, scope):
-            new_refresh_token = RefreshToken(client=client, scope=scope,
-                                             token_type=token_type,
-                                             token_length=token_length)
+            new_refresh_token = RefreshToken.create(client=client, scope=scope,
+                                                    token_length=token_length)
         else:
             new_refresh_token = None
-        return AccessToken(client=client, scope=scope,
-                           token_type=token_type, expiry_time=expiry_time,
-                           token_length=token_length,
-                           new_refresh_token=new_refresh_token,
-                           old_refresh_token=old_refresh_token)
+        return AccessToken.create(client=client, scope=scope,
+                                  token_type=token_type, expiry_time=expiry_time,
+                                  token_length=token_length,
+                                  new_refresh_token=new_refresh_token,
+                                  old_refresh_token=old_refresh_token)
         
 
 class LowSecurityPolicy(Policy):
     """Recommended only for testing out APIs"""
     def token_type(self, client, scope):
-        return BearerTokenType
+        return 'Bearer'
 
     def expiry_time(self, client, scope):
         return None
@@ -82,7 +80,7 @@ class LowSecurityPolicy(Policy):
 class DefaultPolicy(Policy):
     """Reasonably secure settings"""
     def token_type(self, client, scope):
-        return MACTokenType
+        return 'MAC'
 
     def expiry_time(self, client, scope):
         return 3600

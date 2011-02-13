@@ -1,16 +1,15 @@
 from __future__ import absolute_import
 
-import re
+from .token_types import TokenType, token_type_map
+from .utils import normalize_http_header_value
 
 
 class Token(object):
-    lws_re = re.compile('[ \t\n]+')
-
     @classmethod
     def parse_scope_string(cls, scope_string):
-        scope_string = cls.lws_re.sub(' ', scope_string.strip())
+        scope_string = normalize_http_header_value(scope_string)
         if scope_string:
-            return set(cls.lws_re.sub(' ', scope_string.strip()).split(' '))
+            return set(scope_string.split(' '))
         else:
             return set()
 
@@ -20,18 +19,27 @@ class Token(object):
 
 
 class AccessToken(Token):
-    def __init__(self, client, scope, token_type, expiry_time, token_length, new_refresh_token, old_refresh_token):
+    def __init__(self, client, scope, token_type, expiry_time, token_string, new_refresh_token, old_refresh_token, **extra_params):
         self.client = client
         self.scope = scope
         self.token_type = token_type
+        self.token_type_class = token_type_map[token_type]
         self.expiry_time = expiry_time
-        self.token_string = token_type.new_token_string(token_length)
+        self.token_string = token_string
         self.new_refresh_token = new_refresh_token
-        if self.new_refresh_token:
-            self.new_refresh_token.access_token = self
         self.old_refresh_token = old_refresh_token
-        if self.old_refresh_token:
-            self.old_refresh_token.new_access_token = self
+        for k, v in extra_params.items():
+            setattr(self, k, v)
+
+    @classmethod
+    def create(cls, client, scope, token_type, expiry_time, token_length, new_refresh_token, old_refresh_token):
+        access_token = cls(client, scope, token_type, expiry_time, '', new_refresh_token, old_refresh_token)
+        access_token.token_string = access_token.token_type_class.new_token_string(token_length)
+        if new_refresh_token:
+            access_token.new_refresh_token.access_token = access_token
+        if old_refresh_token:
+            access_token.old_refresh_token.new_access_token = access_token
+        return access_token
 
     def as_dict(self):
         d = {"access_token": self.token,
@@ -43,13 +51,16 @@ class AccessToken(Token):
 
 
 class RefreshToken(Token):
-    def __init__(self, client, scope, token_type, token_length, access_token=None):
+    def __init__(self, client, scope, token_string, access_token, new_access_token):
         self.client = client
         self.scope = scope
-        self.token_type = token_type
+        self.token_string = token_string
         self.access_token = access_token
-        self.token_string = token_type.new_token_string(token_length)
-        self.new_access_token = None
+        self.new_access_token = new_access_token
+
+    @classmethod
+    def create(cls, client, scope, token_length, access_token=None):
+         return cls(client, scope, TokenType.new_token_string(token_length), access_token, None)
 
     def check_sub_scope(self, scope):
         return self.check_scope(scope, self.scope)

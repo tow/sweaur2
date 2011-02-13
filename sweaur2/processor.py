@@ -42,7 +42,7 @@ class OAuth2Processor(object):
         if not self.policy.check_scope(client, scope):
             raise InvalidScope()
         access_token = self.policy.new_access_token(client, scope)
-        self.token_store.save(access_token)
+        self.token_store.save_access_token(access_token)
         return access_token
 
     def oauth2_flow_refresh_token(self, **kwargs):
@@ -52,7 +52,7 @@ class OAuth2Processor(object):
             raise InvalidRequest('No refresh_token specified')
         try:
             refresh_token_obj = self.token_store.get_refresh_token(refresh_token)
-        except self.token_store.InvalidToken:
+        except self.token_store.NoSuchToken:
             raise InvalidClient()
         if refresh_token_obj.new_access_token:
             raise InvalidGrant('refresh_token is no longer valid')
@@ -64,6 +64,6 @@ class OAuth2Processor(object):
             # or it may simply be an invalid sub-scope
             raise InvalidScope()
         access_token = self.policy.refresh_access_token(client, scope, refresh_token_obj)
-        self.token_store.save(refresh_token)
-        self.token_store.save(access_token)
+        self.token_store.save_refresh_token(refresh_token_obj)
+        self.token_store.save_access_token(access_token)
         return access_token
