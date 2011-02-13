@@ -34,13 +34,11 @@ q=test
     def test_hmac_sha_1_signing(self):
         signer = Hmac_Sha_1_RequestSigner('ACCESS_TOKEN', 'ACCESS_TOKEN_SECRET', self.timestamp_generator, self.nonce_generator)
         request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com'}, '')
-        print signer.make_signed_request_header(request)
-        assert signer.make_signed_request_header(request) == \
-'Authorization: MAC token="ACCESS_TOKEN" timestamp="1234567890" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'
+        assert signer.make_authorization_header(request) == \
+'MAC token="ACCESS_TOKEN" timestamp="1234567890" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'
 
     def test_hmac_sha_256_signing(self):
         signer = Hmac_Sha_256_RequestSigner('ACCESS_TOKEN', 'ACCESS_TOKEN_SECRET', self.timestamp_generator, self.nonce_generator)
         request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com'}, '')
-        print signer.make_signed_request_header(request)
-        assert signer.make_signed_request_header(request) == \
-'Authorization: MAC token="ACCESS_TOKEN" timestamp="1234567890" nonce="nonce" signature="lO/dtdfkwLVKnD0BzaxUyDTk8poI+vpxxh535VRF2xA="'
+        assert signer.make_authorization_header(request) == \
+'MAC token="ACCESS_TOKEN" timestamp="1234567890" nonce="nonce" signature="lO/dtdfkwLVKnD0BzaxUyDTk8poI+vpxxh535VRF2xA="'

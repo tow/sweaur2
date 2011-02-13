@@ -37,7 +37,7 @@ class RequestSigner(object):
         self.timestamp_generator = timestamp_generator
         self.nonce_generator = nonce_generator
 
-    def make_signed_request_header(self, request):
+    def make_authorization_header(self, request):
         timestamp = self.timestamp_generator()
         nonce = self.nonce_generator()
         if not timestamp_re_obj.match(timestamp):
@@ -45,7 +45,7 @@ class RequestSigner(object):
         if not self.nonce_re_obj.match(nonce):
             raise ValueError("Invalid nonce for MAC authentication")
         signature = self.sign_request(request, timestamp, nonce)
-        return 'Authorization: MAC token="%s" timestamp="%s" nonce="%s" signature="%s"' % (
+        return 'MAC token="%s" timestamp="%s" nonce="%s" signature="%s"' % (
             self.access_token, timestamp, nonce, signature)
 
     def sign_request(self, request, timestamp, nonce):
