@@ -42,9 +42,9 @@ class OAuth2Processor(object):
         if not self.policy.check_scope(client, scope):
             raise InvalidScope()
         _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
-        self.token_store.save_access_token(access_token)
         if new_refresh_token:
             self.token_store.save_refresh_token(new_refresh_token)
+        self.token_store.save_access_token(access_token)
         return access_token
 
     def oauth2_flow_refresh_token(self, **kwargs):
@@ -68,7 +68,7 @@ class OAuth2Processor(object):
         old_refresh_token, access_token, new_refresh_token = \
             self.policy.new_access_token(client, scope, refresh_token_obj)
         self.token_store.save_refresh_token(old_refresh_token)
-        self.token_store.save_access_token(access_token)
         if new_refresh_token:
             self.token_store.save_refresh_token(new_refresh_token)
+        self.token_store.save_access_token(access_token)
         return access_token

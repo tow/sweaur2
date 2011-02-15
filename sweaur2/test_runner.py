@@ -208,8 +208,8 @@ class TestRefreshToken(TestOAuth2Processor):
         client = self.client_refresh_token
         scope = ''
         _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
-        self.token_store.save_access_token(access_token)
         self.token_store.save_refresh_token(new_refresh_token)
+        self.token_store.save_access_token(access_token)
         new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
                                                                 refresh_token=new_refresh_token.token_string)
         self.check_access_token(new_access_token, client, scope, refresh_token_expected=True, old_refresh_token_string=new_refresh_token.token_string)
@@ -218,8 +218,8 @@ class TestRefreshToken(TestOAuth2Processor):
         client = self.client_refresh_token
         scope = 'SCOPE'
         _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
-        self.token_store.save_access_token(access_token)
         self.token_store.save_refresh_token(new_refresh_token)
+        self.token_store.save_access_token(access_token)
         refresh_token = self.token_store.get_refresh_token(access_token.new_refresh_token_string)
         new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
                                                                 refresh_token=refresh_token.token_string,
@@ -230,8 +230,8 @@ class TestRefreshToken(TestOAuth2Processor):
         client = self.client_refresh_token
         scope = ''
         _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
-        self.token_store.save_access_token(access_token)
         self.token_store.save_refresh_token(new_refresh_token)
+        self.token_store.save_access_token(access_token)
         new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
                                                                 refresh_token=new_refresh_token.token_string)
         try:
@@ -247,8 +247,8 @@ class TestRefreshToken(TestOAuth2Processor):
         client = self.client_refresh_token
         scope = 'SCOPE'
         _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
-        self.token_store.save_access_token(access_token)
         self.token_store.save_refresh_token(new_refresh_token)
+        self.token_store.save_access_token(access_token)
         try:
             new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
                                                                     refresh_token=new_refresh_token.token_string,
@@ -263,8 +263,8 @@ class TestRefreshToken(TestOAuth2Processor):
         client = self.client_refresh_token
         scope = 'SCOPE'
         _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
-        self.token_store.save_access_token(access_token)
         self.token_store.save_refresh_token(new_refresh_token)
+        self.token_store.save_access_token(access_token)
         # request next token without mentioning scope; it should be preserved.
         new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
                                                                 refresh_token=new_refresh_token.token_string)
@@ -274,8 +274,8 @@ class TestRefreshToken(TestOAuth2Processor):
         client = self.client_refresh_token
         scope = ''
         _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
-        self.token_store.save_access_token(access_token)
         self.token_store.save_refresh_token(new_refresh_token)
+        self.token_store.save_access_token(access_token)
         # change policy on the server to reduce the scope available to the client
         self.policy.reject_client = True
         try:
