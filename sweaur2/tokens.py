@@ -19,26 +19,22 @@ class Token(object):
 
 
 class AccessToken(Token):
-    def __init__(self, client, scope, token_type, expires_in, token_string, new_refresh_token, old_refresh_token, **extra_params):
+    def __init__(self, client, scope, token_type, expires_in, token_string, old_refresh_token_string, new_refresh_token_string, **extra_params):
         self.client = client
         self.scope = scope
         self.token_type = token_type
         self.token_type_class = token_type_map[token_type]
         self.expires_in = expires_in
         self.token_string = token_string
-        self.new_refresh_token = new_refresh_token
-        self.old_refresh_token = old_refresh_token
+        self.old_refresh_token_string = old_refresh_token_string
+        self.new_refresh_token_string = new_refresh_token_string
         for k, v in extra_params.items():
             setattr(self, k, v)
 
     @classmethod
-    def create(cls, client, scope, token_type, expires_in, token_length, new_refresh_token, old_refresh_token):
-        access_token = cls(client, scope, token_type, expires_in, '', new_refresh_token, old_refresh_token)
+    def create(cls, client, scope, token_type, expires_in, token_length, old_refresh_token_string, new_refresh_token_string):
+        access_token = cls(client, scope, token_type, expires_in, '', old_refresh_token_string, new_refresh_token_string)
         access_token.token_string = access_token.token_type_class.new_token_string(token_length)
-        if new_refresh_token:
-            access_token.new_refresh_token.access_token = access_token
-        if old_refresh_token:
-            access_token.old_refresh_token.new_access_token = access_token
         return access_token
 
     def as_dict(self):
@@ -51,16 +47,16 @@ class AccessToken(Token):
 
 
 class RefreshToken(Token):
-    def __init__(self, client, scope, token_string, access_token, new_access_token):
+    def __init__(self, client, scope, token_string, old_access_token_string, new_access_token_string):
         self.client = client
         self.scope = scope
         self.token_string = token_string
-        self.access_token = access_token
-        self.new_access_token = new_access_token
+        self.old_access_token_string = old_access_token_string
+        self.new_access_token_string = new_access_token_string
 
     @classmethod
-    def create(cls, client, scope, token_length, access_token=None):
-         return cls(client, scope, TokenType.new_token_string(token_length), access_token, None)
+    def create(cls, client, scope, token_length):
+         return cls(client, scope, TokenType.new_token_string(token_length), None, None)
 
     def check_sub_scope(self, scope):
         return self.check_scope(scope, self.scope)

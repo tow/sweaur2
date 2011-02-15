@@ -29,36 +29,32 @@ class Policy(object):
         True/False"""
         raise TypeError("Subclass me!")
 
-    def new_access_token(self, client, scope, old_refresh_token=None):
-        token_type = self.token_type(client, scope)
-        expires_in = self.expires_in(client, scope)
-        token_length = self.token_length(client, scope)
-        if self.refresh_token(client, scope):
-            refresh_token = RefreshToken.create(client=client, scope=scope,
-                                                token_length=token_length)
-        else:
-            refresh_token = None
-        return AccessToken.create(client=client, scope=scope,
-                                  token_type=token_type, expires_in=expires_in,
-                                  token_length=token_length,
-                                  new_refresh_token=refresh_token,
-                                  old_refresh_token=old_refresh_token)
-
-    def refresh_access_token(self, client, scope, old_refresh_token):
+    def new_access_token(self, client, scope, old_refresh_token):
         token_type = self.token_type(client, scope)
         expires_in = self.expires_in(client, scope)
         token_length = self.token_length(client, scope)
         if self.refresh_token(client, scope):
             new_refresh_token = RefreshToken.create(client=client, scope=scope,
                                                     token_length=token_length)
+            new_refresh_token_string = new_refresh_token.token_string
         else:
             new_refresh_token = None
-        return AccessToken.create(client=client, scope=scope,
-                                  token_type=token_type, expires_in=expires_in,
-                                  token_length=token_length,
-                                  new_refresh_token=new_refresh_token,
-                                  old_refresh_token=old_refresh_token)
-        
+            new_refresh_token_string = None
+        if old_refresh_token:
+            old_refresh_token_string = old_refresh_token.token_string
+        else:
+            old_refresh_token_string = None
+        access_token = AccessToken.create(client=client, scope=scope,
+                                          token_type=token_type, expires_in=expires_in,
+                                          token_length=token_length,
+                                          old_refresh_token_string=old_refresh_token_string,
+                                          new_refresh_token_string=new_refresh_token_string)
+        if old_refresh_token:
+            old_refresh_token.new_access_token_string = access_token.token_string
+        if new_refresh_token:
+            new_refresh_token.old_access_token_string = access_token.token_string
+        return old_refresh_token, access_token, new_refresh_token
+
 
 class LowSecurityPolicy(Policy):
     """Recommended only for testing out APIs"""
