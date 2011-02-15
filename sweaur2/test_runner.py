@@ -19,11 +19,20 @@ class ClientForTest(Client):
 
 
 class ClientStoreForTest(ClientStore):
+    def __init__(self):
+        self.clients = {}
+
+    def make_client(self, client, active=True):
+        self.clients[(client.client_id, client.client_secret)] = client
+
     def get_client(self, client_id, client_secret):
         try:
-            return TestOAuth2Processor.clients[(client_id, client_secret)]
+            return self.clients[(client_id, client_secret)]
         except KeyError:
             raise self.NoSuchClient()
+
+    def delete_client(self, client):
+        del self.clients[(client.client_id, client.client_secret)]
 
 
 class TokenStoreForTest(TokenStore):
@@ -53,30 +62,40 @@ class TokenStoreForTest(TokenStore):
 class PolicyForTest(LowSecurityPolicy):
     reject_client = False
     def refresh_token(self, client, scope):
-        return client == TestOAuth2Processor.client_refresh_token
+        return client.client_id == TestOAuth2Processor.client_refresh_token_data.client_id
 
     def check_scope(self, client, scope):
         if self.reject_client:
             return False
-        return client != TestOAuth2Processor.client_no_scopes
+        return client.client_id != TestOAuth2Processor.client_no_scopes_data.client_id
 
 
 class TestOAuth2Processor(object):
-    client_all_scopes = ClientForTest('ID1', 'SECRET1')
-    client_no_scopes = ClientForTest('ID2', 'SECRET2')
-    client_refresh_token = ClientForTest('ID3', 'SECRET3')
-    invalid_client = ClientForTest('NOID', 'NOSECRET')
-    clients = {client_all_scopes.id_secret(): client_all_scopes,
-               client_no_scopes.id_secret(): client_no_scopes,
-               client_refresh_token.id_secret(): client_refresh_token}
+    client_all_scopes_data = ClientForTest('ID1', 'SECRET1')
+    client_no_scopes_data = ClientForTest('ID2', 'SECRET2')
+    client_refresh_token_data = ClientForTest('ID3', 'SECRET3')
+    invalid_client_data = ClientForTest('NOID', 'NOSECRET')
 
     def setUp(self):
         self.client_store = ClientStoreForTest()
+        self.client_all_scopes = self.client_store.make_client(self.client_all_scopes_data)
+        self.client_no_scopes = self.client_store.make_client(self.client_no_scopes_data)
+        self.client_refresh_token = self.client_store.make_client(self.client_refresh_token_data)
+        self.invalid_client = self.client_store.make_client(self.invalid_client_data, active=False)
+        self.client_all_scopes = self.client_all_scopes_data
+        self.client_no_scopes = self.client_no_scopes_data
+        self.client_refresh_token = self.client_refresh_token_data
         self.token_store = TokenStoreForTest()
         self.policy = PolicyForTest()
         self.processor = OAuth2Processor(client_store=self.client_store,
                                          token_store=self.token_store,
                                          policy=self.policy)
+
+    def tearDown(self):
+        self.client_store.delete_client(self.client_all_scopes_data)
+        self.client_store.delete_client(self.client_no_scopes_data)
+        self.client_store.delete_client(self.client_refresh_token_data)
+        self.client_store.delete_client(self.invalid_client_data)
 
     def check_access_token(self, access_token, client, scope, refresh_token_expected, old_refresh_token_string):
         assert access_token.client.client_id == client.client_id
@@ -116,9 +135,10 @@ class TestObviousFailures(TestOAuth2Processor):
 
 class TestClientCredentials(TestOAuth2Processor):
     def testNoClientId(self):
+        client_data = self.client_all_scopes_data
         try:
             self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                 client_secret=self.invalid_client.client_secret)
+                                                 client_secret=client_data.client_secret)
         except InvalidRequest, e:
             assert e.error == 'invalid_request'
             assert e.error_description == 'No client_id specified'
@@ -126,9 +146,10 @@ class TestClientCredentials(TestOAuth2Processor):
             assert False
 
     def testNoClientSecret(self):
+        client_data = self.client_all_scopes_data
         try:
             self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                 client_id=self.invalid_client.client_id)
+                                                 client_id=client_data.client_id)
         except InvalidRequest, e:
             assert e.error == 'invalid_request'
             assert e.error_description == 'No client_secret specified'
@@ -136,46 +157,50 @@ class TestClientCredentials(TestOAuth2Processor):
             assert False
 
     def testInvalidClient(self):
+        client_data = self.invalid_client_data
         try:
             self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                 client_id=self.invalid_client.client_id,
-                                                 client_secret=self.invalid_client.client_secret)
+                                                 client_id=client_data.client_id,
+                                                 client_secret=client_data.client_secret)
         except InvalidClient, e:
             assert e.error == 'invalid_client'
             assert e.error_description == ''
 
     def testTokenOkNoScopeNoRefresh(self):
-        client = self.client_all_scopes
+        client_data = self.client_all_scopes_data
         scope = None
         access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                            client_id=client.client_id,
-                                                            client_secret=client.client_secret)
+                                                            client_id=client_data.client_id,
+                                                            client_secret=client_data.client_secret)
+        client = self.client_store.get_client(client_data.client_id, client_data.client_secret)
         self.check_access_token(access_token, client, scope, refresh_token_expected=False, old_refresh_token_string=None)
 
     def testTokenOkNoScopeWithRefresh(self):
-        client = self.client_refresh_token
+        client_data = self.client_refresh_token_data
         scope = None
         access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                            client_id=client.client_id,
-                                                            client_secret=client.client_secret)
+                                                            client_id=client_data.client_id,
+                                                            client_secret=client_data.client_secret)
+        client = self.client_store.get_client(client_data.client_id, client_data.client_secret)
         self.check_access_token(access_token, client, scope, refresh_token_expected=True, old_refresh_token_string=None)
 
     def testTokenOkWithScope(self):
-        client = self.client_refresh_token
+        client_data = self.client_refresh_token_data
         scope = "SCOPE"
         access_token = self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                            client_id=client.client_id,
-                                                            client_secret=client.client_secret,
+                                                            client_id=client_data.client_id,
+                                                            client_secret=client_data.client_secret,
                                                             scope=scope)
+        client = self.client_store.get_client(client_data.client_id, client_data.client_secret)
         self.check_access_token(access_token, client, scope, refresh_token_expected=True, old_refresh_token_string=None)
 
     def testTokenFailWithScope(self):
-        client = self.client_no_scopes
+        client_data = self.client_no_scopes_data
         scope = "SCOPE"
         try:
             self.processor.oauth2_token_endpoint(grant_type='client_credentials',
-                                                 client_id=client.client_id,
-                                                 client_secret=client.client_secret,
+                                                 client_id=client_data.client_id,
+                                                 client_secret=client_data.client_secret,
                                                  scope=scope)
         except InvalidScope, e:
             assert e.error == 'invalid_scope'
