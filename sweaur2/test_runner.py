@@ -6,7 +6,7 @@ from .exceptions import InvalidClient, InvalidGrant, InvalidRequest, InvalidScop
 from .policy import LowSecurityPolicy
 from .processor import OAuth2Processor
 from .token_store import TokenStore
-from .tokens import AccessToken, RefreshToken
+from .tokens import Token, AccessToken, RefreshToken
 
 
 class ClientForTest(Client):
@@ -232,7 +232,7 @@ class TestRefreshToken(TestOAuth2Processor):
     def testTokenOk(self):
         client = self.client_refresh_token
         scope = ''
-        _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
+        _, access_token, new_refresh_token = Token.make_new_access_token(self.policy, client, scope, None)
         self.token_store.save_refresh_token(new_refresh_token)
         self.token_store.save_access_token(access_token)
         new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
@@ -242,7 +242,7 @@ class TestRefreshToken(TestOAuth2Processor):
     def testTokenOkWithScope(self):
         client = self.client_refresh_token
         scope = 'SCOPE'
-        _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
+        _, access_token, new_refresh_token = Token.make_new_access_token(self.policy, client, scope, None)
         self.token_store.save_refresh_token(new_refresh_token)
         self.token_store.save_access_token(access_token)
         refresh_token = self.token_store.get_refresh_token(access_token.new_refresh_token_string)
@@ -254,7 +254,7 @@ class TestRefreshToken(TestOAuth2Processor):
     def testReuseRefreshTokenFails(self):
         client = self.client_refresh_token
         scope = ''
-        _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
+        _, access_token, new_refresh_token = Token.make_new_access_token(self.policy, client, scope, None)
         self.token_store.save_refresh_token(new_refresh_token)
         self.token_store.save_access_token(access_token)
         new_access_token = self.processor.oauth2_token_endpoint(grant_type='refresh_token',
@@ -271,7 +271,7 @@ class TestRefreshToken(TestOAuth2Processor):
     def testRefreshTokenTooWideScopeFails(self):
         client = self.client_refresh_token
         scope = 'SCOPE'
-        _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
+        _, access_token, new_refresh_token = Token.make_new_access_token(self.policy, client, scope, None)
         self.token_store.save_refresh_token(new_refresh_token)
         self.token_store.save_access_token(access_token)
         try:
@@ -287,7 +287,7 @@ class TestRefreshToken(TestOAuth2Processor):
     def testRefreshTokenPreservesScope(self):
         client = self.client_refresh_token
         scope = 'SCOPE'
-        _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
+        _, access_token, new_refresh_token = Token.make_new_access_token(self.policy, client, scope, None)
         self.token_store.save_refresh_token(new_refresh_token)
         self.token_store.save_access_token(access_token)
         # request next token without mentioning scope; it should be preserved.
@@ -298,7 +298,7 @@ class TestRefreshToken(TestOAuth2Processor):
     def testRefreshTokenFailsAfterPolicyChange(self):
         client = self.client_refresh_token
         scope = ''
-        _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
+        _, access_token, new_refresh_token = Token.make_new_access_token(self.policy, client, scope, None)
         self.token_store.save_refresh_token(new_refresh_token)
         self.token_store.save_access_token(access_token)
         # change policy on the server to reduce the scope available to the client

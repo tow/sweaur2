@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 from .exceptions import InvalidRequest, InvalidClient, InvalidGrant, UnauthorizedClient, UnsupportedGrantType, InvalidScope
+from .tokens import Token
+
 
 class OAuth2Processor(object):
     def __init__(self, client_store, token_store, policy):
@@ -41,7 +43,7 @@ class OAuth2Processor(object):
         scope = kwargs.get('scope')
         if not self.policy.check_scope(client, scope):
             raise InvalidScope()
-        _, access_token, new_refresh_token = self.policy.new_access_token(client, scope, None)
+        _, access_token, new_refresh_token = Token.make_new_access_token(self.policy, client, scope, None)
         if new_refresh_token:
             self.token_store.save_refresh_token(new_refresh_token)
         self.token_store.save_access_token(access_token)
@@ -66,7 +68,7 @@ class OAuth2Processor(object):
             # or it may simply be an invalid sub-scope
             raise InvalidScope()
         old_refresh_token, access_token, new_refresh_token = \
-            self.policy.new_access_token(client, scope, refresh_token_obj)
+            Token.make_new_access_token(self.policy, client, scope, refresh_token_obj)
         self.token_store.save_refresh_token(old_refresh_token)
         if new_refresh_token:
             self.token_store.save_refresh_token(new_refresh_token)

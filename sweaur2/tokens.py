@@ -17,6 +17,33 @@ class Token(object):
         """Are all the scopes in scope_string_1 within the scopes in scope_string_2?"""
         return not bool(self.parse_scope_string(scope_string_1) - self.parse_scope_string(scope_string_2))
 
+    @staticmethod
+    def make_new_access_token(policy, client, scope, old_refresh_token):
+        token_type = policy.token_type(client, scope)
+        expires_in = policy.expires_in(client, scope)
+        token_length = policy.token_length(client, scope)
+        if policy.refresh_token(client, scope):
+            new_refresh_token = RefreshToken.create(client=client, scope=scope,
+                                                    token_length=token_length)
+            new_refresh_token_string = new_refresh_token.token_string
+        else:
+            new_refresh_token = None
+            new_refresh_token_string = None
+        if old_refresh_token:
+            old_refresh_token_string = old_refresh_token.token_string
+        else:
+            old_refresh_token_string = None
+        access_token = AccessToken.create(client=client, scope=scope,
+                                          token_type=token_type, expires_in=expires_in,
+                                          token_length=token_length,
+                                          old_refresh_token_string=old_refresh_token_string,
+                                          new_refresh_token_string=new_refresh_token_string)
+        if old_refresh_token:
+            old_refresh_token.new_access_token_string = access_token.token_string
+        if new_refresh_token:
+            new_refresh_token.old_access_token_string = access_token.token_string
+        return old_refresh_token, access_token, new_refresh_token
+
 
 class AccessToken(Token):
     def __init__(self, client, scope, token_type, expires_in, token_string, old_refresh_token_string, new_refresh_token_string, **extra_params):
