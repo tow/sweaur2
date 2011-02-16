@@ -6,8 +6,8 @@ from .exceptions import InvalidClient
 from .policy import LowSecurityPolicy
 from .request import Request
 from .request_handler import RequestHandler
-from .test_token_endpoint import TokenStoreForTest
 from .tokens import AccessToken
+from .token_store import TokenStoreSimpleDict
 
 
 class TestSigningHeader(object):
@@ -120,7 +120,7 @@ class TestChecker(object):
     def setUp(self):
         self.access_token_all_ok = AccessToken('client', 'scope', 'bearer', 3600, 'ACCESS_TOKEN', None, None, body=True, uri=True)
         self.access_token_only_header = AccessToken('client', 'scope', 'bearer', 3600, 'HEADER_TOKEN', None, None, body=False, uri=False)
-        self.token_store = TokenStoreForTest()
+        self.token_store = TokenStoreSimpleDict()
         self.token_store.save_access_token(self.access_token_all_ok)
         self.token_store.save_access_token(self.access_token_only_header)
         self.policy = LowSecurityPolicy()

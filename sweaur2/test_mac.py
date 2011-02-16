@@ -4,8 +4,8 @@ from .mac_client import Hmac_Sha_1_RequestSigner, Hmac_Sha_256_RequestSigner
 from .policy import LowSecurityPolicy
 from .request import Request
 from .request_handler import RequestHandler
-from .test_token_endpoint import TokenStoreForTest
 from .tokens import AccessToken
+from .token_store import TokenStoreSimpleDict
 
 
 class TestSigning(object):
@@ -57,7 +57,7 @@ class TestChecker(object):
     def setUp(self):
         self.access_token_sha_1 = AccessToken('client', 'scope', 'mac', 3600, 'ACCESS_TOKEN', None, None, secret='ACCESS_TOKEN_SECRET', algorithm='hmac-sha-1')
         self.access_token_sha_256 = AccessToken('client', 'scope', 'mac', 3600, 'ACCESS_TOKEN_256', None, None, secret='ACCESS_TOKEN_SECRET_256', algorithm='hmac-sha-256')
-        self.token_store = TokenStoreForTest()
+        self.token_store = TokenStoreSimpleDict()
         self.token_store.save_access_token(self.access_token_sha_1)
         self.token_store.save_access_token(self.access_token_sha_256)
         self.policy = LowSecurityPolicy()

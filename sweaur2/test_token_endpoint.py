@@ -5,7 +5,7 @@ from .client_store import ClientStore
 from .exceptions import InvalidClient, InvalidGrant, InvalidRequest, InvalidScope, UnsupportedGrantType
 from .policy import LowSecurityPolicy
 from .processor import OAuth2Processor
-from .token_store import TokenStore
+from .token_store import TokenStoreSimpleDict
 from .tokens import Token, AccessToken, RefreshToken
 
 
@@ -35,30 +35,6 @@ class ClientStoreForTest(ClientStore):
         del self.clients[(client.client_id, client.client_secret)]
 
 
-class TokenStoreForTest(TokenStore):
-    def __init__(self):
-        self.access_tokens = {}
-        self.refresh_tokens = {}
-
-    def save_access_token(self, token):
-        self.access_tokens[token.token_string] = token
-
-    def save_refresh_token(self, token):
-        self.refresh_tokens[token.token_string] = token
-
-    def get_refresh_token(self, refresh_token_string):
-        try:
-            return self.refresh_tokens[refresh_token_string]
-        except KeyError:
-            raise self.NoSuchToken()
-
-    def get_access_token(self, access_token_string, token_type):
-        try:
-            return self.access_tokens[access_token_string]
-        except KeyError:
-            raise self.NoSuchToken()
-
-
 class PolicyForTest(LowSecurityPolicy):
     reject_client = False
     def refresh_token(self, client, scope):
@@ -85,7 +61,7 @@ class TestOAuth2Processor(object):
         self.client_all_scopes = self.client_all_scopes_data
         self.client_no_scopes = self.client_no_scopes_data
         self.client_refresh_token = self.client_refresh_token_data
-        self.token_store = TokenStoreForTest()
+        self.token_store = TokenStoreSimpleDict()
         self.policy = PolicyForTest()
         self.processor = OAuth2Processor(client_store=self.client_store,
                                          token_store=self.token_store,
