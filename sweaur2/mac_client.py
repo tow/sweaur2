@@ -32,7 +32,7 @@ class MACRequestSigner(RequestSigner):
         super(MACRequestSigner, self).__init__(access_token_obj)
 
         assert default_signers[access_token_obj.algorithm] == self.__class__
-        self.access_token_secret = access_token_obj.secret_token_string
+        self.access_token_secret = access_token_obj.secret
         if not self.access_token_re_obj.match(self.access_token_string):
             raise ValueError("Invalid access_token for MAC authentication")
         if not self.access_token_secret_re_obj.match(self.access_token_secret):

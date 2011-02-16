@@ -126,6 +126,15 @@ class TestChecker(object):
         self.policy = LowSecurityPolicy()
         self.request_handler = RequestHandler(policy=self.policy, token_store=self.token_store, allowed_token_types=('bearer',))
 
+    def test_check_request_fails_if_wrong_auth_type(self):
+        request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'BearerMISSPELT ACCESS_TOKEN'}, '')
+        try:
+            token = self.request_handler.check_request(request=request)
+        except self.request_handler.AuthenticationNotFound:
+            pass
+        else:
+            assert False
+
     def test_check_request_fails_if_absent(self):
         request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com'}, '')
         try:

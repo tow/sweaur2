@@ -29,6 +29,14 @@ class Policy(object):
         True/False"""
         raise TypeError("Subclass me!")
 
+    def check_timestamp(self, client, scope, request, timestamp):
+        """Is a request with this timestamp ok?"""
+        raise TypeError("Subclass me!")
+
+    def check_nonce(self, client, scope, request, nonce):
+        """Is a request with this nonce ok?"""
+        raise TypeError("Subclass me!")
+
 
 class LowSecurityPolicy(Policy):
     """Recommended only for testing out APIs"""
@@ -47,6 +55,12 @@ class LowSecurityPolicy(Policy):
     def check_scope(self, client, scope, request):
         return True
 
+    def check_timestamp(self, client, scope, request, timestamp):
+        return True
+
+    def check_nonce(self, client, scope, request, nonce):
+        return True
+
 
 class DefaultPolicy(Policy):
     """Reasonably secure settings"""
@@ -63,4 +77,13 @@ class DefaultPolicy(Policy):
         return 32
 
     def check_scope(self, client, scope, request):
+        return True
+
+    def check_timestamp(self, client, scope, request, timestamp):
+        return (timestamp - time.time()) < 3000
+
+    def check_nonce(self, client, scope, request, nonce):
+        # NB This is not a good default policy. You should
+        # check in your backend somewhere that nonce hasn't
+        # been used recently.
         return True

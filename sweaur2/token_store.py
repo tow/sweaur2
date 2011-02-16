@@ -11,7 +11,7 @@ class TokenStore(object):
     def save_refresh_token(self, token):
         raise TypeError("Subclass me!")
 
-    def get_access_token(self, token_string):
+    def get_access_token(self, token_string, token_type):
         raise TypeError("Subclass me!")    
 
     def get_refresh_token(self, token_string):
