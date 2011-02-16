@@ -55,6 +55,7 @@ class AccessToken(Token):
         self.token_string = token_string
         self.old_refresh_token_string = old_refresh_token_string
         self.new_refresh_token_string = new_refresh_token_string
+        self.extra_parameters = extra_params
         for k, v in extra_params.items():
             setattr(self, k, v)
 

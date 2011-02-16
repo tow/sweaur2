@@ -24,8 +24,8 @@ class Policy(object):
         """How many characters long should the token be?"""
         raise TypeError("Subclass me!")
 
-    def check_scope(self, client, scope):
-        """Is the given client permitted this scope?
+    def check_scope(self, client, scope, request):
+        """Is the given client permitted this scope of action on this request?
         True/False"""
         raise TypeError("Subclass me!")
 
@@ -33,7 +33,7 @@ class Policy(object):
 class LowSecurityPolicy(Policy):
     """Recommended only for testing out APIs"""
     def token_type(self, client, scope):
-        return 'Bearer'
+        return 'bearer'
 
     def expires_in(self, client, scope):
         return None
@@ -44,13 +44,14 @@ class LowSecurityPolicy(Policy):
     def token_length(self, client, scope):
         return 8
 
-    def check_scope(self, client, scope):
+    def check_scope(self, client, scope, request):
         return True
+
 
 class DefaultPolicy(Policy):
     """Reasonably secure settings"""
     def token_type(self, client, scope):
-        return 'MAC'
+        return 'mac'
 
     def expires_in(self, client, scope):
         return 3600
@@ -61,5 +62,5 @@ class DefaultPolicy(Policy):
     def token_length(self, client, scope):
         return 32
 
-    def check_scope(self, client, scope):
+    def check_scope(self, client, scope, request):
         return True

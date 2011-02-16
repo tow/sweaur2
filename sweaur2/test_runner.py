@@ -52,7 +52,7 @@ class TokenStoreForTest(TokenStore):
         except KeyError:
             raise self.NoSuchToken()
 
-    def get_access_token(self, access_token_string):
+    def get_access_token(self, access_token_string, token_type):
         try:
             return self.access_tokens[access_token_string]
         except KeyError:

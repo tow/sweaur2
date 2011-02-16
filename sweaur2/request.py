@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from .exceptions import InvalidScope
+
 
 class Request(object):
     def __init__(self, method, uri, headers, body):
@@ -22,6 +24,8 @@ class RequestSigner(object):
 
 
 class RequestChecker(object):
+    request_checkers = {}
+
     class AuthenticationNotFound(Exception):
         pass
 
@@ -31,13 +35,3 @@ class RequestChecker(object):
     def __init__(self, token_store, policy):
         self.token_store = token_store
         self.policy = policy
-
-
-class OAuth2Connection(object):
-    def __init__(self, token_object, signing_params=None):
-        if signing_params is None:
-            signing_params = {}
-        self.signer = self.token_object.token_type.signer_class(token_object, **signing_params)
-        
-    def get_authentication_header(self, method, uri, headers, body):
-        return self.signer.make_authorization_header(Request(method, uri, headers, body))

@@ -19,8 +19,8 @@ class BearerBodyRequestSigner(RequestSigner):
     def sign_request(self, request):
         if request.method in ('GET', 'HEAD'):
             raise ValueError("Cannot sign the body of a '%s' request" % request.method)
-        if request.headers.get('CONTENT-TYPE') != 'x-www-form-urlencoded':
-            raise ValueError("Cannot sign the body of a request which is not x-www-form-urlencoded")
+        if request.headers.get('CONTENT-TYPE') != 'application/x-www-form-urlencoded':
+            raise ValueError("Cannot sign the body of a request which is not application/x-www-form-urlencoded")
         try:
             qs = parse_qsl(request.body)
         except ValueError:

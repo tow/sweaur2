@@ -21,6 +21,6 @@ class MACTokenType(TokenType):
             raise ValueError("Unknown MAC signing algorithm: %s" % algorithm)
 
 token_type_map = {
-   'Bearer': BearerTokenType,
-   'MAC': MACTokenType,
+   'bearer': BearerTokenType,
+   'mac': MACTokenType,
 }
