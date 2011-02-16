@@ -6,7 +6,7 @@ from .exceptions import InvalidClient
 from .policy import LowSecurityPolicy
 from .request import Request
 from .request_handler import RequestHandler
-from .test_runner import TokenStoreForTest
+from .test_token_endpoint import TokenStoreForTest
 from .tokens import AccessToken
 
 

@@ -4,7 +4,7 @@ from .mac_client import Hmac_Sha_1_RequestSigner, Hmac_Sha_256_RequestSigner
 from .policy import LowSecurityPolicy
 from .request import Request
 from .request_handler import RequestHandler
-from .test_runner import TokenStoreForTest
+from .test_token_endpoint import TokenStoreForTest
 from .tokens import AccessToken
 
 
