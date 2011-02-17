@@ -82,7 +82,7 @@ class MACRequestSigner(RequestSigner):
 class Hmac_Sha_1_RequestSigner(MACRequestSigner):
     def generate_signature(self, request, timestamp, nonce):
         return base64.b64encode(
-            hmac.new(self.access_token_secret,
+            hmac.new(self.access_token_secret.encode('utf-8'),
                      self.normalized_request_string(request, timestamp, nonce),
                      hashlib.sha1).digest()
         )
@@ -91,7 +91,7 @@ class Hmac_Sha_1_RequestSigner(MACRequestSigner):
 class Hmac_Sha_256_RequestSigner(MACRequestSigner):
     def generate_signature(self, request, timestamp, nonce):
         return base64.b64encode(
-            hmac.new(self.access_token_secret,
+            hmac.new(self.access_token_secret.encode('utf-8'),
                      self.normalized_request_string(request, timestamp, nonce),
                      hashlib.sha256).digest()
         )
