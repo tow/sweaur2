@@ -55,9 +55,22 @@ class AccessToken(Token):
         self.token_string = token_string
         self.old_refresh_token_string = old_refresh_token_string
         self.new_refresh_token_string = new_refresh_token_string
-        self.extra_parameters = extra_params
-        for k, v in extra_params.items():
+        if token_type == 'bearer':
+            self.extra_parameters = {
+                'header': extra_params.get('header', True),
+                'body': extra_params.get('body', False),
+                'uri': extra_params.get('uri', False),
+                }
+        elif token_type == 'mac':
+            self.extra_parameters = {
+                'secret': extra_params['secret'],
+                'algorithm': extra_params['algorithm']
+                }
+        else:
+            raise ValueError
+        for k, v in self.extra_parameters.items():
             setattr(self, k, v)
+
 
     @classmethod
     def create(cls, client, scope, token_type, expires_in, token_length, old_refresh_token_string, new_refresh_token_string):
