@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 from .bearer_client import BearerHeaderRequestSigner, BearerBodyRequestSigner, BearerUriRequestSigner
 from .bearer_server import BearerRequestChecker
+from .client_store import ClientStoreSimpleDict
 from .exceptions import InvalidClient
 from .policy import LowSecurityPolicy
 from .request import Request
-from .request_handler import RequestHandler
+from .constructor_tests import constructor_for_bearer_checks
 from .tokens import AccessToken
 from .token_store import TokenStoreSimpleDict
 
@@ -114,133 +115,6 @@ class TestSigningUri(object):
         else:
             assert False
 
+        
 
-class TestChecker(object):
-
-    def setUp(self):
-        self.access_token_all_ok = AccessToken('client', 'scope', 'bearer', 3600, 'ACCESS_TOKEN', None, None, body=True, uri=True)
-        self.access_token_only_header = AccessToken('client', 'scope', 'bearer', 3600, 'HEADER_TOKEN', None, None, body=False, uri=False)
-        self.token_store = TokenStoreSimpleDict()
-        self.token_store.save_access_token(self.access_token_all_ok)
-        self.token_store.save_access_token(self.access_token_only_header)
-        self.policy = LowSecurityPolicy()
-        self.request_handler = RequestHandler(policy=self.policy, token_store=self.token_store, allowed_token_types=('bearer',))
-
-    def test_check_request_fails_if_wrong_auth_type(self):
-        request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'BearerMISSPELT ACCESS_TOKEN'}, '')
-        try:
-            token = self.request_handler.check_request(request=request)
-        except self.request_handler.AuthenticationNotFound:
-            pass
-        else:
-            assert False
-
-    def test_check_request_fails_if_absent(self):
-        request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com'}, '')
-        try:
-            token = self.request_handler.check_request(request=request)
-        except self.request_handler.AuthenticationNotFound:
-            pass
-        else:
-            assert False
-
-
-class TestCheckingHeader(TestChecker):
-
-    def test_check_request_header_ok(self):
-        request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'Bearer ACCESS_TOKEN'}, '')
-        token = self.request_handler.check_request(request=request)
-        assert token.client == 'client'
-        assert token.scope == 'scope'
-
-    def test_check_request_header_fails_if_wrong(self):
-        request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'Bearer ANOTHER_TOKEN'}, '')
-        try:
-            token = self.request_handler.check_request(request=request)
-        except InvalidClient:
-            pass
-        else:
-            assert False
-
-
-class TestCheckingBody(TestChecker):
-
-    def test_check_request_body_ok(self):
-        request = Request('POST', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Content-Type':'application/x-www-form-urlencoded'}, 'oauth_token=ACCESS_TOKEN')
-        token = self.request_handler.check_request(request=request)
-        assert token.client == 'client'
-        assert token.scope == 'scope'
-
-
-    def test_check_request_body_fails_if_wrong(self):
-        request = Request('POST', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Content-Type':'application/x-www-form-urlencoded'}, 'oauth_token=ANOTHER_TOKEN')
-        try:
-            token = self.request_handler.check_request(request=request)
-        except InvalidClient:
-            pass
-        else:
-            assert False
-
-    def test_check_request_body_fails_if_should_have_no_body(self):
-        request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Content-Type':'application/x-www-form-urlencoded'}, 'oauth_token=ACCESS_TOKEN')
-        try:
-            token = self.request_handler.check_request(request=request)
-        except self.request_handler.AuthenticationNotFound:
-            pass
-        else:
-            assert False
-
-    def test_check_request_body_fails_if_wrong_content_type(self):
-        request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Content-Type':'text/html'}, 'oauth_token=ACCESS_TOKEN')
-        try:
-            token = self.request_handler.check_request(request=request)
-        except self.request_handler.AuthenticationNotFound:
-            pass
-        else:
-            assert False
-
-    def test_check_request_body_fails_if_no_content_type(self):
-        request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com'}, 'oauth_token=ACCESS_TOKEN')
-        try:
-            token = self.request_handler.check_request(request=request)
-        except self.request_handler.AuthenticationNotFound:
-            pass
-        else:
-            assert False
-
-    def test_check_request_body_fails_if_disallowed(self):
-        request = Request('POST', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Content-Type':'application/x-www-form-urlencoded'}, 'oauth_token=HEADER_TOKEN')
-        try:
-            token = self.request_handler.check_request(request=request)
-        except self.request_handler.AuthenticationNotPermitted:
-            pass
-        else:
-            assert False
-
-
-class TestCheckingUri(TestChecker):
-
-    def test_check_request_uri_ok(self):
-        request = Request('GET', 'http://example.com/query/?q=test&fmt=json&oauth_token=ACCESS_TOKEN', {'Host': 'example.com'}, '')
-        token = self.request_handler.check_request(request=request)
-        assert token.client == 'client'
-        assert token.scope == 'scope'
-
-
-    def test_check_request_body_fails_if_wrong(self):
-        request = Request('GET', 'http://example.com/query/?q=test&fmt=json&oauth_token=ANOTHER_TOKEN', {'Host': 'example.com'}, '')
-        try:
-            token = self.request_handler.check_request(request=request)
-        except InvalidClient:
-            pass
-        else:
-            assert False
-
-    def test_check_request_body_fails_if_disallowed(self):
-        request = Request('GET', 'http://example.com/query/?q=test&fmt=json&oauth_token=HEADER_TOKEN', {'Host': 'example.com'}, '')
-        try:
-            token = self.request_handler.check_request(request=request)
-        except self.request_handler.AuthenticationNotPermitted:
-            pass
-        else:
-            assert False
+globals().update(constructor_for_bearer_checks(TokenStoreSimpleDict(), ClientStoreSimpleDict()))

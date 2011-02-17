@@ -1,27 +1,20 @@
 from __future__ import absolute_import
 
-from .client import Client
+from .client import SimpleClient
 from .client_store import ClientStore
 from .exceptions import InvalidClient, InvalidGrant, InvalidRequest, InvalidScope, UnsupportedGrantType
 from .policy import LowSecurityPolicy
 from .processor import OAuth2Processor
+from .request import Request
+from .request_handler import RequestHandler
 from .token_store import TokenStoreSimpleDict
 from .tokens import Token, AccessToken, RefreshToken
 
 
-class ClientForTest(Client):
-    def __init__(self, client_id, client_secret):
-        self.client_id = client_id
-        self.client_secret = client_secret
-
-    def id_secret(self):
-        return (self.client_id, self.client_secret)
-
-
-client_all_scopes_data = ClientForTest('ID1', 'SECRET1')
-client_no_scopes_data = ClientForTest('ID2', 'SECRET2')
-client_refresh_token_data = ClientForTest('ID3', 'SECRET3')
-invalid_client_data = ClientForTest('NOID', 'NOSECRET')
+client_all_scopes_data = SimpleClient('ID1', 'SECRET1')
+client_no_scopes_data = SimpleClient('ID2', 'SECRET2')
+client_refresh_token_data = SimpleClient('ID3', 'SECRET3')
+invalid_client_data = SimpleClient('NOID', 'NOSECRET')
 
 
 class PolicyForTest(LowSecurityPolicy):
@@ -279,18 +272,24 @@ def constructor_for_token_endpoint(token_store, client_store):
         'TestRefreshToken':TestRefreshToken,
         }
 
+
 def constructor_for_bearer_checks(token_store, client_store):
     class TestChecker(object):
 
         def setUp(self):
             self.token_store = token_store
+            self.client_store = client_store
 
-            self.access_token_all_ok = AccessToken('client', 'scope', 'bearer', 3600, 'ACCESS_TOKEN', None, None, body=True, uri=True)
-            self.access_token_only_header = AccessToken('client', 'scope', 'bearer', 3600, 'HEADER_TOKEN', None, None, body=False, uri=False)
+            self.client = self.client_store.make_client(SimpleClient('client_id', 'client_secret'))
+            self.access_token_all_ok = AccessToken(self.client, 'scope', 'bearer', 3600, 'ACCESS_TOKEN', None, None, body=True, uri=True)
+            self.access_token_only_header = AccessToken(self.client, 'scope', 'bearer', 3600, 'HEADER_TOKEN', None, None, body=False, uri=False)
             self.token_store.save_access_token(self.access_token_all_ok)
             self.token_store.save_access_token(self.access_token_only_header)
             self.policy = LowSecurityPolicy()
             self.request_handler = RequestHandler(policy=self.policy, token_store=self.token_store, allowed_token_types=('bearer',))
+
+        def tearDown(self):
+            self.client_store.delete_client(self.client)
 
 
     class TestBasicChecks(TestChecker):
@@ -318,7 +317,7 @@ def constructor_for_bearer_checks(token_store, client_store):
         def test_check_request_header_ok(self):
             request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'Bearer ACCESS_TOKEN'}, '')
             token = self.request_handler.check_request(request=request)
-            assert token.client == 'client'
+            assert token.client.client_id == self.client.client_id
             assert token.scope == 'scope'
 
         def test_check_request_header_fails_if_wrong(self):
@@ -336,7 +335,7 @@ def constructor_for_bearer_checks(token_store, client_store):
         def test_check_request_body_ok(self):
             request = Request('POST', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Content-Type':'application/x-www-form-urlencoded'}, 'oauth_token=ACCESS_TOKEN')
             token = self.request_handler.check_request(request=request)
-            assert token.client == 'client'
+            assert token.client.client_id == self.client.client_id
             assert token.scope == 'scope'
 
 
@@ -391,7 +390,7 @@ def constructor_for_bearer_checks(token_store, client_store):
         def test_check_request_uri_ok(self):
             request = Request('GET', 'http://example.com/query/?q=test&fmt=json&oauth_token=ACCESS_TOKEN', {'Host': 'example.com'}, '')
             token = self.request_handler.check_request(request=request)
-            assert token.client == 'client'
+            assert token.client.client_id == self.client.client_id
             assert token.scope == 'scope'
 
 
@@ -412,3 +411,92 @@ def constructor_for_bearer_checks(token_store, client_store):
                 pass
             else:
                 assert False
+
+    return {
+        'TestBasicChecks': TestBasicChecks,
+        'TestCheckingHeader':TestCheckingHeader,
+        'TestCheckingBody': TestCheckingBody,
+        'TestCheckingUri':TestCheckingUri
+        }
+
+
+def constructor_for_mac(token_store, client_store):
+    class TestChecker(object):
+
+        def setUp(self):
+            self.token_store = token_store
+            self.client_store = client_store
+            self.client = SimpleClient('client_id', 'client_secret')
+
+            self.access_token_sha_1 = AccessToken(self.client, 'scope', 'mac', 3600, 'ACCESS_TOKEN', None, None, secret='ACCESS_TOKEN_SECRET', algorithm='hmac-sha-1')
+            self.access_token_sha_256 = AccessToken(self.client, 'scope', 'mac', 3600, 'ACCESS_TOKEN_256', None, None, secret='ACCESS_TOKEN_SECRET_256', algorithm='hmac-sha-256')
+            self.token_store.save_access_token(self.access_token_sha_1)
+            self.token_store.save_access_token(self.access_token_sha_256)
+            self.policy = LowSecurityPolicy()
+            self.request_handler = RequestHandler(policy=self.policy, token_store=self.token_store, allowed_token_types=('mac',))
+
+
+    class TestBasicChecker(TestChecker):
+        def test_check_request_fails_if_auth_type_wrong(self):
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC_MISSPELT token="ACCESS_TOKEN"'}, '')
+            try:
+                token = self.request_handler.check_request(request=request)
+            except self.request_handler.AuthenticationNotFound:
+                pass
+            else:
+                assert False
+
+        def test_check_request_fails_if_auth_absent(self):
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com'}, '')
+            try:
+                token = self.request_handler.check_request(request=request)
+            except self.request_handler.AuthenticationNotFound:
+                pass
+            else:
+                assert False
+
+    class TestMacChecker(TestChecker):
+
+        def test_check_request_header_ok(self):
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" timestamp="1234567890" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'}, '')
+            token = self.request_handler.check_request(request=request)
+            assert token.client.client_id == self.client.client_id
+            assert token.scope == 'scope'
+
+        def test_check_request_header_ok_params_out_of_order(self):
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC timestamp="1234567890" nonce="nonce" token="ACCESS_TOKEN" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'}, '')
+            token = self.request_handler.check_request(request=request)
+            assert token.client.client_id == self.client.client_id
+            assert token.scope == 'scope'
+
+        def test_check_request_header_fails_bad_timestamp(self):
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" timestamp="NOT A TIMESTAMP" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'}, '')
+            try:
+                token = self.request_handler.check_request(request=request)
+            except self.request_handler.AuthenticationNotPermitted:
+                pass
+            else:
+                assert False
+
+        def test_check_request_header_fails_missing_param(self):
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'}, '')
+            try:
+                token = self.request_handler.check_request(request=request)
+            except self.request_handler.AuthenticationNotPermitted:
+                pass
+            else:
+                assert False
+
+        def test_check_request_header_fails_bad_signature(self):
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEB="'}, '')
+            try:
+                token = self.request_handler.check_request(request=request)
+            except self.request_handler.AuthenticationNotPermitted:
+                pass
+            else:
+                assert False
+
+    return {
+        'TestBasicChecker': TestBasicChecker,
+        'TestMacChecker': TestMacChecker,
+        }
