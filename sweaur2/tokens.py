@@ -21,10 +21,8 @@ class Token(object):
     def make_new_access_token(policy, client, scope, old_refresh_token):
         token_type = policy.token_type(client, scope)
         expires_in = policy.expires_in(client, scope)
-        token_length = policy.token_length(client, scope)
         if policy.refresh_token(client, scope):
-            new_refresh_token = RefreshToken.create(client=client, scope=scope,
-                                                    token_length=token_length)
+            new_refresh_token = RefreshToken.create(policy=policy, client=client, scope=scope)
             new_refresh_token_string = new_refresh_token.token_string
         else:
             new_refresh_token = None
@@ -33,9 +31,9 @@ class Token(object):
             old_refresh_token_string = old_refresh_token.token_string
         else:
             old_refresh_token_string = None
-        access_token = AccessToken.create(client=client, scope=scope,
+        extra_parameters = token_type_map[token_type].new_extra_parameters(policy, client, scope)
+        access_token = AccessToken.create(policy=policy, client=client, scope=scope,
                                           token_type=token_type, expires_in=expires_in,
-                                          token_length=token_length,
                                           old_refresh_token_string=old_refresh_token_string,
                                           new_refresh_token_string=new_refresh_token_string)
         if old_refresh_token:
@@ -46,7 +44,7 @@ class Token(object):
 
 
 class AccessToken(Token):
-    def __init__(self, client, scope, token_type, expires_in, token_string, old_refresh_token_string, new_refresh_token_string, **extra_params):
+    def __init__(self, client, scope, token_type, expires_in, token_string, old_refresh_token_string, new_refresh_token_string, **extra_parameters):
         self.client = client
         self.scope = scope
         self.token_type = token_type
@@ -55,28 +53,25 @@ class AccessToken(Token):
         self.token_string = token_string
         self.old_refresh_token_string = old_refresh_token_string
         self.new_refresh_token_string = new_refresh_token_string
-        if token_type == 'bearer':
-            self.extra_parameters = {
-                'header': extra_params.get('header', True),
-                'body': extra_params.get('body', False),
-                'uri': extra_params.get('uri', False),
-                }
-        elif token_type == 'mac':
-            self.extra_parameters = {
-                'secret': extra_params['secret'],
-                'algorithm': extra_params['algorithm']
-                }
-        else:
-            raise ValueError
+        try:
+            token_type_obj = token_type_map[token_type]
+        except KeyError:
+            raise ValueError("Unknown token type")
+        self.extra_parameters = token_type_obj.extra_parameter_defaults.copy()
+        self.extra_parameters.update(**extra_parameters)
         for k, v in self.extra_parameters.items():
             setattr(self, k, v)
 
 
     @classmethod
-    def create(cls, client, scope, token_type, expires_in, token_length, old_refresh_token_string, new_refresh_token_string):
-        access_token = cls(client, scope, token_type, expires_in, '', old_refresh_token_string, new_refresh_token_string)
-        access_token.token_string = access_token.token_type_class.new_token_string(token_length)
-        return access_token
+    def create(cls, policy, client, scope, token_type, expires_in, old_refresh_token_string, new_refresh_token_string):
+        try:
+            token_type_obj = token_type_map[token_type]
+        except KeyError:
+            raise ValueError("Unknown token type")
+        extra_parameters = token_type_obj.new_extra_parameters(policy, client, scope)
+        token_string = policy.new_access_token_string(client, scope)
+        return cls(client, scope, token_type, expires_in, token_string, old_refresh_token_string, new_refresh_token_string, **extra_parameters)
 
     def as_dict(self):
         d = {"access_token": self.token,
@@ -96,8 +91,9 @@ class RefreshToken(Token):
         self.new_access_token_string = new_access_token_string
 
     @classmethod
-    def create(cls, client, scope, token_length):
-         return cls(client, scope, TokenType.new_token_string(token_length), None, None)
+    def create(cls, policy, client, scope):
+         token_string = policy.new_refresh_token_string(client, scope)
+         return cls(client, scope, token_string, None, None)
 
     def check_sub_scope(self, scope):
         return self.check_scope(scope, self.scope)

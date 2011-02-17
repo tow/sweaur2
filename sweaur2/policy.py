@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
 from .tokens import AccessToken, RefreshToken
-from .token_types import BearerTokenType, MACTokenType
+from .token_types import TokenType, MACTokenType, token_type_map
+from .utils import random_string
 
 
 class Policy(object):
@@ -25,15 +26,29 @@ class Policy(object):
         raise TypeError("Subclass me!")
 
     # For ACCESS TOKEN
-    def token_length(self, client, scope):
-        """How many characters long should the token be?"""
-        raise TypeError("Subclass me!")
-
-    # For ACCESS TOKEN
     def scope_for_access_token(self, client, scope):
         """Is this client allowed to request this scope on an access token?
         True/False"""
         raise TypeError("Subclass me!")
+
+    # For ACCESS TOKEN
+    def new_access_token_string(self, client, scope):
+        """Return a string suitable for use as a new access token.
+        You'll want to do something like this, but incorporate
+        a uniqueness check against existing tokens"""
+        token_type = self.token_type(client, scope)
+        token_length = 16
+        allowed_token_chars = token_type_map[token_type].allowed_token_chars
+        return random_string(token_length, allowed_token_chars)
+
+    # For ACCESS TOKEN
+    def new_refresh_token_string(self, client, scope):
+        """Return a string suitable for use as a new refresh token.
+        You'll want to do something like this, but incorporate
+        a uniqueness check against existing tokens"""
+        token_length = 16
+        allowed_token_chars = TokenType.allowed_token_chars
+        return random_string(token_length, allowed_token_chars)
 
     # For REQUEST
     def check_scope_for_request(self, client, scope, request):
@@ -43,13 +58,28 @@ class Policy(object):
 
 # For Bearer Tokens
     # For ACCESS_TOKEN
-    def bearer_auth_methods(self, client, scope):
-        """Which auth methods should be allowed for an access token
-        with this client and scope?
-        {"body":True/False, "uri":True/False}"""
+    def body_auth_ok(self, client, scope):
+        """Should the client be allowed to use body auth 
+        to authenticate with this token?
+        True/False"""
+        raise TypeError("Subclass me!")
+
+    # For ACCESS_TOKEN
+    def uri_auth_ok(self, client, scope):
+        """Should the client be allowed to use body auth 
+        to authenticate with this token?
+        True/False"""
         raise TypeError("Subclass me!")
 
 # For MAC Tokens
+
+    # For ACCESS TOKEN
+    def new_access_token_secret(self, client, scope):
+        """Return a string suitable for use as a new refresh token"""
+        token_length = 16
+        allowed_token_chars = MACTokenType.allowed_token_chars
+        return random_string(token_length, allowed_token_chars)
+
     # For ACCESS_TOKEN
     def algorithm(self, client, scope):
         """Which algorithm should be used for an access token
@@ -79,14 +109,14 @@ class LowSecurityPolicy(Policy):
     def refresh_token(self, client, scope):
         return False
 
-    def token_length(self, client, scope):
-        return 8
-
     def scope_for_access_token(self, client, scope):
         return True
 
-    def bearer_auth_methods(self, client, scope):
-        return {'body': True, 'uri':True}
+    def body_auth_ok(self, client, scope):
+        return True
+
+    def uri_auth_ok(self, client, scope):
+        return True
 
     def check_scope_for_request(self, client, scope, request):
         return True
@@ -110,9 +140,6 @@ class DefaultPolicy(Policy):
 
     def refresh_token(self, client, scope):
         return True
-
-    def token_length(self, client, scope):
-        return 32
 
     def scope_for_access_token(self, client, scope):
         return True
