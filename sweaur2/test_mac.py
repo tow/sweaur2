@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from .client_store import ClientStoreSimpleDict
-from .constructor_tests import constructor_for_mac
+from .constructor_tests import constructor_for_mac_checks
 from .mac_client import Hmac_Sha_1_RequestSigner, Hmac_Sha_256_RequestSigner
 from .policy import LowSecurityPolicy
 from .request import Request
@@ -54,4 +54,4 @@ q=test
 'MAC token="ACCESS_TOKEN" timestamp="1234567890" nonce="nonce" signature="lO/dtdfkwLVKnD0BzaxUyDTk8poI+vpxxh535VRF2xA="'
 
 
-globals().update(constructor_for_mac(TokenStoreSimpleDict(), ClientStoreSimpleDict()))
+globals().update(constructor_for_mac_checks(TokenStoreSimpleDict(), ClientStoreSimpleDict()))

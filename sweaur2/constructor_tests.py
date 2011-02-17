@@ -22,7 +22,7 @@ class PolicyForTest(LowSecurityPolicy):
     def refresh_token(self, client, scope):
         return client.client_id == client_refresh_token_data.client_id
 
-    def check_scope(self, client, scope):
+    def scope_for_access_token(self, client, scope):
         if self.reject_client:
             return False
         return client.client_id != client_no_scopes_data.client_id

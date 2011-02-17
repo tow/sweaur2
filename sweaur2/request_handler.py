@@ -33,6 +33,6 @@ class RequestHandler(object):
                 pass
         if not token:
             raise request_checker.AuthenticationNotFound
-        if not self.policy.check_scope(token.client, token.scope, request):
+        if not self.policy.check_scope_for_request(token.client, token.scope, request):
             raise InvalidScope("You can't make that request under the scope of this access token")
         return token
