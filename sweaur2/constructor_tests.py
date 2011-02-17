@@ -420,20 +420,23 @@ def constructor_for_bearer_checks(token_store, client_store):
         }
 
 
-def constructor_for_mac(token_store, client_store):
+def constructor_for_mac_checks(token_store, client_store):
     class TestChecker(object):
 
         def setUp(self):
             self.token_store = token_store
             self.client_store = client_store
-            self.client = SimpleClient('client_id', 'client_secret')
 
+            self.client = self.client_store.make_client(SimpleClient('client_id', 'client_secret'))
             self.access_token_sha_1 = AccessToken(self.client, 'scope', 'mac', 3600, 'ACCESS_TOKEN', None, None, secret='ACCESS_TOKEN_SECRET', algorithm='hmac-sha-1')
             self.access_token_sha_256 = AccessToken(self.client, 'scope', 'mac', 3600, 'ACCESS_TOKEN_256', None, None, secret='ACCESS_TOKEN_SECRET_256', algorithm='hmac-sha-256')
             self.token_store.save_access_token(self.access_token_sha_1)
             self.token_store.save_access_token(self.access_token_sha_256)
             self.policy = LowSecurityPolicy()
             self.request_handler = RequestHandler(policy=self.policy, token_store=self.token_store, allowed_token_types=('mac',))
+
+        def tearDown(self):
+            return self.client_store.delete_client(self.client)
 
 
     class TestBasicChecker(TestChecker):
