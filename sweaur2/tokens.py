@@ -80,7 +80,8 @@ class AccessToken(Token):
             d["expires_in"] = self.expires_in
         if self.old_refresh_token:
             d["refresh_token"] = self.old_refresh_token.token
-
+        d.update(self.extra_parameters)
+        return d
 
 class RefreshToken(Token):
     def __init__(self, client, scope, token_string, old_access_token_string, new_access_token_string):
