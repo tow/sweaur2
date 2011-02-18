@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import base64, hashlib, hmac, re
 
-from .exceptions import InvalidClient
+from .exceptions import InvalidClient, InvalidRequest
 from .mac_client import ascii_subset_re, timestamp_re_obj, default_signers
 from .request import Request, RequestChecker
 from .utils import normalize_port_number, normalize_query_parameters, parse_auth_header
@@ -30,12 +30,13 @@ class MACRequestChecker(RequestChecker):
             raise InvalidClient()
         client = token.client
         scope = token.scope
-        if not self.policy.check_timestamp(client, scope, request, long(parameter_dict['timestamp'])):
+        timestamp = long(parameter_dict['timestamp'])
+        if not self.policy.check_timestamp(client, scope, request, timestamp):
             raise InvalidRequest('Timestamp is too old or new')
-        if not self.policy.check_nonce(client, scope, request, parameter_dict['nonce']):
+        if not self.token_store.check_nonce(parameter_dict['nonce'], timestamp, token.token_string):
             raise InvalidRequest("I'm not going to let you use that nonce")
         if not self.check_signature(request, token, **parameter_dict):
-            raise InvalidSignature()
+            raise InvalidRequest("Invalid signature")
         return token
 
     def check_authorization_header(self, header):

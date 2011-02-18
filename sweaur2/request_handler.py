@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from .bearer_server import BearerRequestChecker
+from .exceptions import InvalidRequest
 from .mac_server import MACRequestChecker
 from .request import RequestChecker
 
@@ -31,6 +32,8 @@ class RequestHandler(object):
                 token = request_checker.do_request_check(request)
             except request_checker.AuthenticationNotFound:
                 pass
+            except InvalidRequest:
+                raise self.AuthenticationNotPermitted()
         if not token:
             raise request_checker.AuthenticationNotFound
         if not self.policy.check_scope_for_request(token.client, token.scope, request):

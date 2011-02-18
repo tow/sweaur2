@@ -461,19 +461,19 @@ def constructor_for_mac_checks(token_store, client_store):
     class TestMacChecker(TestChecker):
 
         def test_check_request_header_ok(self):
-            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" timestamp="1234567890" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'}, '')
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" timestamp="1234567890" nonce="nonce1" signature="L7CJk1NFQd7Lgay/WU6JL9MKbLI="'}, '')
             token = self.request_handler.check_request(request=request)
             assert token.client.client_id == self.client.client_id
             assert token.scope == 'scope'
 
         def test_check_request_header_ok_params_out_of_order(self):
-            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC timestamp="1234567890" nonce="nonce" token="ACCESS_TOKEN" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'}, '')
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC timestamp="1234567890" nonce="nonce2" token="ACCESS_TOKEN" signature="r3jBcuyprmEJqWS2HIJ5GbT+L6E="'}, '')
             token = self.request_handler.check_request(request=request)
             assert token.client.client_id == self.client.client_id
             assert token.scope == 'scope'
 
         def test_check_request_header_fails_bad_timestamp(self):
-            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" timestamp="NOT A TIMESTAMP" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'}, '')
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" timestamp="NOT A TIMESTAMP" nonce="nonce3" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'}, '')
             try:
                 token = self.request_handler.check_request(request=request)
             except self.request_handler.AuthenticationNotPermitted:
@@ -482,7 +482,7 @@ def constructor_for_mac_checks(token_store, client_store):
                 assert False
 
         def test_check_request_header_fails_missing_param(self):
-            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'}, '')
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" nonce="nonce4" signature="ayGkNO5lTkTK0nmjYS9a2nxifEA="'}, '')
             try:
                 token = self.request_handler.check_request(request=request)
             except self.request_handler.AuthenticationNotPermitted:
@@ -491,7 +491,7 @@ def constructor_for_mac_checks(token_store, client_store):
                 assert False
 
         def test_check_request_header_fails_bad_signature(self):
-            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC token="ACCESS_TOKEN" nonce="nonce" signature="ayGkNO5lTkTK0nmjYS9a2nxifEB="'}, '')
+            request = Request('GET', 'http://example.com/query/?q=test&fmt=json', {'Host': 'example.com', 'Authorization':'MAC timestamp="1234567890" token="ACCESS_TOKEN" nonce="nonce5" signature="ayGkNO5lTkTK0nmjYS9a2nxifEB="'}, '')
             try:
                 token = self.request_handler.check_request(request=request)
             except self.request_handler.AuthenticationNotPermitted:

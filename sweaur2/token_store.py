@@ -17,11 +17,15 @@ class TokenStore(object):
     def get_refresh_token(self, token_string):
         raise TypeError("Subclass me!")    
 
+    def check_nonce(self, nonce, timestamp, token):
+        raise TypeError("Subclass me!")    
+
 
 class TokenStoreSimpleDict(TokenStore):
     def __init__(self):
         self.access_tokens = {}
         self.refresh_tokens = {}
+        self.nonce_sense = set() # Phil Collins
 
     def save_access_token(self, token):
         self.access_tokens[token.token_string] = token
@@ -40,3 +44,9 @@ class TokenStoreSimpleDict(TokenStore):
             return self.access_tokens[access_token_string]
         except KeyError:
             raise self.NoSuchToken()
+
+    def check_nonce(self, nonce, timestamp, token):
+        if nonce in self.nonce_sense:
+            return False
+        self.nonce_sense.add((nonce, timestamp, token))
+        return True
