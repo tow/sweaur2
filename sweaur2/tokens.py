@@ -74,12 +74,12 @@ class AccessToken(Token):
         return cls(client, scope, token_type, expires_in, token_string, old_refresh_token_string, new_refresh_token_string, **extra_parameters)
 
     def as_dict(self):
-        d = {"access_token": self.token,
-             "token_type": token_type.name}
+        d = {"access_token": self.token_string,
+             "token_type": self.token_type}
         if self.expires_in:
             d["expires_in"] = self.expires_in
-        if self.old_refresh_token:
-            d["refresh_token"] = self.old_refresh_token.token
+        if self.new_refresh_token_string:
+            d["refresh_token"] = self.new_refresh_token_string
         d.update(self.extra_parameters)
         return d
 

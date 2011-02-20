@@ -11,7 +11,7 @@ class OAuth2Error(Exception):
             self.__class__.__name__,
             self.error,
             self.error_description,
-            self.uri
+            self.error_uri,
             )
 
     def as_dict(self):
