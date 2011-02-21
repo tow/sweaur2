@@ -51,6 +51,12 @@ class Policy(object):
         return random_string(token_length, allowed_token_chars)
 
     # For REQUEST
+    def available_auth_types(self, method, uri):
+        """What authentication schemes (bearer, mac, etc) are available for
+        requests with this method on this uri?"""
+        raise TypeError("Subclass me!")
+
+    # For REQUEST
     def check_scope_for_request(self, client, scope, request):
         """Is the given client permitted to make this request under this scope?
         True/False"""

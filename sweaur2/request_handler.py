@@ -4,6 +4,7 @@ from .bearer_server import BearerRequestChecker
 from .exceptions import InvalidRequest
 from .mac_server import MACRequestChecker
 from .request import RequestChecker
+from .utils import quoted_string
 
 
 registered_request_checkers = {
@@ -13,10 +14,22 @@ registered_request_checkers = {
 
 
 class RequestHandler(object):
-    AuthenticationNotFound = RequestChecker.AuthenticationNotFound
     AuthenticationNotPermitted = RequestChecker.AuthenticationNotPermitted
 
     def __init__(self, policy, token_store, allowed_token_types=None):
+        class AuthenticationNotFound(RequestChecker.AuthenticationNotFound):
+            def response_headers(self, realm=None, *args, **kwargs):
+                auth_headers = []
+                for token_type in allowed_token_types:
+                    auth_header = registered_request_checkers[token_type].auth_type
+                    if realm:
+                        auth_header += ' realm="%s"' % quoted_string(realm)
+                    if self.error_msg:
+                        auth_header += ' error="%s"' % quoted_string(self.error_msg)
+                    auth_headers.append(auth_header)
+                return {'WWW-Authenticate': ', '.join(auth_headers)}
+
+        self.AuthenticationNotFound = AuthenticationNotFound
         self.policy = policy
         self.token_store = token_store
         if allowed_token_types is None:
@@ -35,7 +48,7 @@ class RequestHandler(object):
             except InvalidRequest:
                 raise self.AuthenticationNotPermitted()
         if not token:
-            raise request_checker.AuthenticationNotFound
+            raise self.AuthenticationNotFound()
         if not self.policy.check_scope_for_request(token.client, token.scope, request):
             raise InvalidScope("You can't make that request under the scope of this access token")
         return token

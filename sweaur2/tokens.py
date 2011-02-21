@@ -1,22 +1,10 @@
 from __future__ import absolute_import
 
 from .token_types import TokenType, token_type_map
-from .utils import normalize_http_header_value
+from .utils import is_first_scope_string_in_second
 
 
 class Token(object):
-    @classmethod
-    def parse_scope_string(cls, scope_string):
-        scope_string = normalize_http_header_value(scope_string)
-        if scope_string:
-            return set(scope_string.split(' '))
-        else:
-            return set()
-
-    def check_scope(self, scope_string_1, scope_string_2):
-        """Are all the scopes in scope_string_1 within the scopes in scope_string_2?"""
-        return not bool(self.parse_scope_string(scope_string_1) - self.parse_scope_string(scope_string_2))
-
     @staticmethod
     def make_new_access_token(policy, client, scope, old_refresh_token):
         token_type = policy.token_type(client, scope)
@@ -97,4 +85,4 @@ class RefreshToken(Token):
          return cls(client, scope, token_string, None, None)
 
     def check_sub_scope(self, scope):
-        return self.check_scope(scope, self.scope)
+        return is_first_scope_string_in_second(scope, self.scope)

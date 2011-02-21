@@ -62,3 +62,18 @@ def parse_auth_header(header, paramdict):
             raise ValueError
         parameter_dict[title] = value
     return authtype, parameter_dict
+
+def quoted_string(s):
+    """Escape all double quotes and backslashes"""
+    return s.replace('\\', '\\\\').replace('"', '\\"')
+
+def parse_scope_string(scope_string):
+    scope_string = normalize_http_header_value(scope_string)
+    if scope_string:
+        return set(scope_string.split(' '))
+    else:
+        return set()
+
+def is_first_scope_string_in_second(scope_string_1, scope_string_2):
+    """Are all the scopes in scope_string_1 within the scopes in scope_string_2?"""
+    return not bool(parse_scope_string(scope_string_1) - parse_scope_string(scope_string_2))

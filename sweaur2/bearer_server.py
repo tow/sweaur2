@@ -9,6 +9,7 @@ from .utils import parse_auth_header, parse_qsl
 
 class BearerRequestChecker(RequestChecker):
     token_type = 'bearer'
+    auth_type = 'Bearer'
 
     def do_request_check(self, request):
         access_token_string, token_from = self.check_all_request_methods(request)

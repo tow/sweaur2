@@ -10,6 +10,7 @@ from .utils import normalize_port_number, normalize_query_parameters, parse_auth
 
 class MACRequestChecker(RequestChecker):
     token_type = 'mac'
+    auth_type = 'MAC'
 
     def __init__(self, signers=None, *args, **kwargs):
         if signers is None:
@@ -40,7 +41,10 @@ class MACRequestChecker(RequestChecker):
         return token
 
     def check_authorization_header(self, header):
-        auth_type, parameter_dict = parse_auth_header(header, True)
+        try:
+            auth_type, parameter_dict = parse_auth_header(header, True)
+        except ValueError:
+            raise self.AuthenticationBroken()
         if auth_type != 'MAC':
             raise self.AuthenticationNotFound()
         try:
