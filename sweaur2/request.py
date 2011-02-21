@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from .exceptions import InvalidScope
-from .utils import quoted_string
 
 
 class Request(object):
@@ -41,13 +40,6 @@ class RequestChecker(object):
 
     class AuthenticationNotFound(AuthenticationException):
         status_code = 401
-        def response_headers(self, realm=None, *args, **kwargs):
-            auth_header = self.auth_type
-            if realm:
-                auth_header += ' realm="%s"' % quoted_string(realm)
-            if self.error_msg:
-                auth_header += ' error="%s"' % quoted_string(self.error_msg)
-            return {'WWW-Authenticate': auth_header}
 
     class AuthenticationNotPermitted(Exception):
         status_code = 403
